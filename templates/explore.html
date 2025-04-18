@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Explore - ConnectHub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/explore.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/comments.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body data-viewed-user-id="{{ user._id if user else '' }}">
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-project-diagram"></i>
+                <h1>ConnectHub</h1>
+            </div>
+            
+            <nav class="main-nav">
+                <ul>
+                    <li>
+                        <a href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li class="active">
+                        <a href="{{ url_for('explore') }}">
+                            <i class="fas fa-compass"></i>
+                            <span>Explore</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('notifications') }}">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                            <span class="notification-badge"></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-envelope"></i>
+                            <span>Messages</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('profile') }}">
+                            <i class="fas fa-user"></i>
+                            <span>Profile</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('settings') }}">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="following-section">
+                <h3>Following</h3>
+                <ul class="following-list">
+                    <!-- Following list will be loaded dynamically -->
+                </ul>
+                <a href="#" class="see-all-link">See all</a>
+            </div>
+            
+            <div class="user-profile" id="user-profile-menu">
+                <div class="user-avatar">
+                    <img src="{{ url_for('static', filename='uploads/default-avatar-1.jpg') }}" alt="User Avatar" id="current-user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3 id="current-user-name">John Doe</h3>
+                    <p id="current-user-handle">@johndoe</p>
+                </div>
+                <button id="user-menu-toggle" class="menu-toggle">
+                    <i class="fas fa-ellipsis-h"></i>
+                </button>
+                
+                <!-- User dropdown menu -->
+                <div class="user-dropdown" id="user-dropdown">
+                    <ul>
+                        <li><a href="{{url_for('profile') }}"><i class="fas fa-user"></i> View Profile</a></li>
+                        <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                        <li><a href="#" id="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</a></li>
+                        <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Error/Success Messages -->
+            <div class="message-container">
+                <div class="error-message" id="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="error-text">Error message will appear here</span>
+                    <button class="close-message"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="success-message" id="success-message">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="success-text">Success message will appear here</span>
+                    <button class="close-message"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+
+            <!-- Explore Header -->
+            <div class="explore-header">
+                <h2>Explore</h2>
+                <div class="explore-tabs">
+                    <button class="explore-tab active" data-tab="trending">Trending</button>
+                    <button class="explore-tab" data-tab="latest">Latest</button>
+                    <button class="explore-tab" data-tab="popular">Popular</button>
+                    <button class="explore-tab" data-tab="people">People</button>
+                </div>
+                <div class="explore-search">
+                    <div class="search-container">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="explore-search-input" placeholder="Search ConnectHub">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Explore Content -->
+            <div class="explore-content">
+                <!-- Trending Tab Content (default active) -->
+                <div class="tab-content active" id="trending-content">
+                    <div class="trending-categories">
+                        <div class="category-chips">
+                            <button class="category-chip active" data-category="all">All</button>
+                            <button class="category-chip" data-category="technology">Technology</button>
+                            <button class="category-chip" data-category="entertainment">Entertainment</button>
+                            <button class="category-chip" data-category="sports">Sports</button>
+                            <button class="category-chip" data-category="news">News</button>
+                            <button class="category-chip" data-category="lifestyle">Lifestyle</button>
+                        </div>
+                    </div>
+                    <div class="trending-posts" id="trending-posts">
+                        <!-- Trending posts will be loaded here -->
+                        <div class="loading-spinner">
+                            <i class="fas fa-spinner fa-spin"></i>
+                            <span>Loading trending posts...</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Latest Tab Content -->
+                <div class="tab-content" id="latest-content">
+                    <div class="latest-posts" id="latest-posts">
+                        <!-- Latest posts will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- Popular Tab Content -->
+                <div class="tab-content" id="popular-content">
+                    <div class="popular-posts" id="popular-posts">
+                        <!-- Popular posts will be loaded here -->
+                    </div>
+                </div>
+
+                <!-- People Tab Content -->
+                <div class="tab-content" id="people-content">
+                    <div class="suggested-people" id="suggested-people">
+                        <!-- Suggested people will be loaded here -->
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar -->
+        <aside class="right-sidebar">
+            <!-- <div class="who-to-follow">
+                <h3>Who to Follow</h3>
+                <div class="suggested-users" id="suggested-users">
+                   
+                    <div class="loading-spinner small">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </div>
+            </div> -->
+            
+            <div class="trending-section">
+                <h3>Trending Topics</h3>
+                <div class="trending-topics" id="trending-topics">
+                    <!-- Dữ liệu sẽ được thêm động bằng JavaScript -->
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Post Template (Hidden) -->
+    <template id="post-template">
+        <div class="post" data-post-id="">
+            <div class="post-header">
+                <a href="#" class="user-link">
+                    <div class="user-avatar small">
+                        <img src="" alt="">
+                    </div>
+                </a>
+                <div class="post-user-info">
+                    <a href="#" class="user-link">
+                        <h4 class="post-author"></h4>
+                    </a>
+                    <p><span class="post-username"></span> • <span class="post-time"></span></p>
+                </div>
+                <div class="post-options">
+                    <button class="post-menu-toggle">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <div class="post-dropdown">
+                        <ul>
+                            <li class="edit-post-option"><a href="#"><i class="fas fa-edit"></i> Edit Post</a></li>
+                            <li class="delete-post-option"><a href="#"><i class="fas fa-trash"></i> Delete Post</a></li>
+                            <li><a href="#"><i class="fas fa-flag"></i> Report Post</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="post-content">
+                <p class="post-text"></p>
+                <div class="post-image">
+                    <img src="" alt="">
+                </div>
+            </div>
+            <div class="post-actions">
+                <button class="like-btn"><i class="far fa-heart"></i> <span class="like-count">0</span></button>
+                <button class="comment-btn"><i class="far fa-comment"></i> <span class="comment-count">0</span></button>
+                <button class="share-btn"><i class="far fa-share-square"></i> <span class="share-count">0</span></button>
+            </div>
+        </div>
+    </template>
+
+    <!-- User Card Template (Hidden) -->
+    <template id="user-card-template">
+        <div class="user-card" data-user-id="">
+            <div class="user-card-header">
+                <div class="user-avatar medium">
+                    <img src="/placeholder.svg" alt="">
+                </div>
+                <button class="follow-btn" data-user-id="">Follow</button>
+            </div>
+            <div class="user-card-info">
+                <a href="#" class="user-link">
+                    <h4 class="user-name"></h4>
+                </a>
+                <p class="user-username"></p>
+                <p class="user-bio"></p>
+            </div>
+            <div class="user-card-stats">
+                <div class="stat">
+                    <span class="stat-value posts-count">0</span>
+                    <span class="stat-label">Posts</span>
+                </div>
+                <div class="stat">
+                    <span class="stat-value followers-count">0</span>
+                    <span class="stat-label">Followers</span>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Follow List Modal -->
+    <!-- <div id="follow-modal" class="follow-modal">
+        <div class="follow-modal-content">
+            <h2>Followers</h2>
+            <div id="follow-list" class="follow-user-list">
+                <div class="loading-spinner small"><i class="fas fa-spinner fa-spin"></i></div>
+            </div>
+            <button class="close-modal-btn" onclick="document.getElementById('follow-modal').classList.remove('active')">
+                <i class="fas fa-times"></i>
+            </button>
+        </div>
+    </div> -->
+    <!-- <script src="{{ url_for('static', filename='js/auth.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/explore.js') }}"></script>
+</body>
+</html>

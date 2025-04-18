@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - ConnectHub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/comments.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body data-viewed-user-id="{{ user._id }}">
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-project-diagram"></i>
+                <h1>ConnectHub</h1>
+            </div>
+            
+            <nav class="main-nav">
+                <ul>
+                    <li class="active">
+                        <a href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('explore') }}">
+                            <i class="fas fa-compass"></i>
+                            <span>Explore</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('notifications') }}">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                            <span class="notification-badge" id="notification-badge"></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-envelope"></i>
+                            <span>Messages</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('profile') }}">
+                            <i class="fas fa-user"></i>
+                            <span>Profile</span>
+                        </a>
+                    </li>
+                    <!-- <li>
+                        <a href="#">
+                            <i class="fas fa-bookmark"></i>
+                            <span>Bookmarks</span>
+                        </a>
+                    </li> -->
+                    <li>
+                        <a href="{{ url_for('settings') }}">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="following-section">
+                <h3>Following</h3>
+                <ul class="following-list">
+                    {% for user in users %}
+                    <li>
+                        <a href="{{ url_for('profile_with_id', user_id=user._id) }}" class="following-item">
+                            <div class="user-avatar mini">
+                                <img src="{{ user.avatar }}" alt="{{ user.fullname }}'s Avatar">
+                            </div>
+                            <span>{{ user.fullname }}</span>
+                        </a>
+                    </li>
+                    {% endfor %}
+                </ul>
+                <a href="#" class="see-all-link">See all</a>
+            </div>
+            
+            <div class="user-profile" id="user-profile-menu">
+                <div class="user-avatar">
+                    <img src="{{ url_for('static', filename='uploads/default-avatar-1.jpg') }}" alt="User Avatar" id="current-user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3 id="current-user-name">John Doe</h3>
+                    <p id="current-user-handle">@johndoe</p>
+                </div>
+                <button id="user-menu-toggle" class="menu-toggle">
+                    <i class="fas fa-ellipsis-h"></i>
+                </button>
+                
+                <!-- User dropdown menu -->
+                <div class="user-dropdown" id="user-dropdown">
+                    <ul>
+                        <li><a href="{{url_for('profile') }}"><i class="fas fa-user"></i> View Profile</a></li>
+                        <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li>
+                        <li><a href="#" id="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</a></li>
+                        <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Error/Success Messages -->
+            <div class="message-container">
+                <div class="error-message" id="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="error-text">Error message will appear here</span>
+                    <button class="close-message"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="success-message" id="success-message">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="success-text">Success message will appear here</span>
+                    <button class="close-message"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+
+            <!-- Create Post -->
+            <div class="create-post">
+                <div class="post-form">
+                    <div class="user-avatar" id="post-user-avatar-container">
+                        <img src="{{ url_for('static', filename='uploads/default-avatar-1.jpg') }}" alt="Your Avatar" id="post-user-avatar">
+                    </div>
+                    <div class="post-input">
+                        <textarea id="post-content" placeholder="What's happening?"></textarea>
+                        <div id="image-preview" class="image-preview">
+                            <img src="#" alt="Preview" id="preview-image">
+                            <button id="remove-preview" class="remove-preview"><i class="fas fa-times"></i></button>
+                        </div>
+                        <div class="post-actions">
+                            <div class="post-attachments">
+                                <label for="post-image" class="attachment-btn">
+                                    <i class="far fa-image"></i>
+                                </label>
+                                <input type="file" id="post-image" accept="image/*" hidden>
+                            </div>
+                            <button id="create-post-btn" class="create-post-btn" disabled>Post</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Posts Feed -->
+            <div class="posts-feed" id="posts-feed">
+                <!-- Posts will be loaded dynamically -->
+                <div class="loading-spinner">
+                    <i class="fas fa-spinner fa-spin"></i>
+                    <span>Loading posts...</span>
+                </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar -->
+        <aside class="right-sidebar">
+            <!-- <div class="profile-stats">
+              <div class="stat" id="posts-stat">
+                <span class="stat-value" id="posts-count">0</span>
+                <span class="stat-label">Posts</span>
+              </div>
+              <div class="stat" id="following-stat">
+                <span class="stat-value my-following-count" id="following-count">0</span>
+                <span class="stat-label">Following</span>
+              </div>
+              <div class="stat" id="followers-stat">
+                <span class="stat-value" id="followers-count">0</span>
+                <span class="stat-label">Followers</span>
+              </div>
+            </div> -->
+            <div class="who-to-follow">
+                <h3>Who to Follow</h3>
+                <div class="suggested-users" id="suggested-users">
+                    <!-- Suggested users will be loaded dynamically -->
+                    <div class="loading-spinner small">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="trending-section">
+                <h3>Trending Topics</h3>
+                <div class="trending-topics" id="trending-topics">
+                    <!-- Dữ liệu sẽ được thêm động bằng JavaScript -->
+                </div>
+            </div>
+            
+            
+        </aside>
+    </div>
+
+    <!-- Post Template (Hidden) -->
+    <template id="post-template">
+        <div class="post" data-post-id="">
+            <div class="post-header">
+                <a href="#" class="user-link">
+                    <div class="user-avatar small">
+                        <img src="" alt="">
+                    </div>
+                </a>
+                <div class="post-user-info">
+                    <a href="#" class="user-link">
+                        <h4 class="post-author"></h4>
+                    </a>
+                    <p><span class="post-username"></span> • <span class="post-time"></span></p>
+                </div>
+                <div class="post-options">
+                    <button class="post-menu-toggle">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <div class="post-dropdown">
+                        <ul>
+                            <li class="edit-post-option"><a href="#"><i class="fas fa-edit"></i> Edit Post</a></li>
+                            <li class="delete-post-option"><a href="#"><i class="fas fa-trash"></i> Delete Post</a></li>
+                            <li><a href="#"><i class="fas fa-flag"></i> Report Post</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="post-content">
+                <p class="post-text"></p>
+                <div class="post-image">
+                    <img src="" alt="">
+                </div>
+            </div>
+            <div class="post-actions">
+                <button class="like-btn"><i class="far fa-heart"></i> <span class="like-count">0</span></button>
+                <button class="comment-btn"><i class="far fa-comment"></i> <span class="comment-count">0</span></button>
+                <button class="share-btn"><i class="far fa-share-square"></i> <span class="share-count">0</span></button>
+            </div>
+            <div class="post-comments">
+                <div class="comments-list">
+                    <!-- Comments will be loaded here -->
+                </div>
+                <div class="no-comments">
+                    <p>No comments yet. Be the first to comment!</p>
+                </div>
+                <div class="add-comment">
+                    <div class="user-avatar small">
+                        <img src="{{ url_for('static', filename='uploads/default-avatar-1.jpg') }}" alt="Your Avatar">
+                    </div>
+                    <div class="comment-input-container">
+                        <textarea class="comment-input" placeholder="Write a comment..."></textarea>
+                        <button class="send-comment-btn" disabled><i class="fas fa-paper-plane"></i></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </template>
+
+    <!-- Comment Template (Hidden) -->
+    <template id="comment-template">
+        <div class="comment" data-comment-id="">
+            <div class="comment-header">
+                <a href="#" class="user-link">
+                    <div class="user-avatar small">
+                        <img src="/placeholder.svg" alt="">
+                    </div>
+                </a>
+                <div class="comment-user-info">
+                    <a href="#" class="user-link">
+                        <h4 class="comment-author"></h4>
+                    </a>
+                    <p class="comment-time"></p>
+                </div>
+                <div class="comment-options">
+                    <button class="comment-menu-toggle">
+                        <i class="fas fa-ellipsis-h"></i>
+                    </button>
+                    <div class="comment-dropdown">
+                        <ul>
+                            <li class="edit-comment-option"><a href="#"><i class="fas fa-edit"></i> Edit</a></li>
+                            <li class="delete-comment-option"><a href="#"><i class="fas fa-trash"></i> Delete</a></li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <div class="comment-content">
+                <p class="comment-text"></p>
+            </div>
+            <div class="comment-actions">
+                <button class="like-comment-btn"><i class="far fa-heart"></i> <span class="comment-like-count">0</span></button>
+            </div>
+        </div>
+    </template>
+
+    <!-- Suggested User Template (Hidden) -->
+    <template id="suggested-user-template">
+        <div class="suggested-user">
+            <a href="#" class="user-link">
+                <div class="user-avatar small">
+                    <img src="/placeholder.svg" alt="Suggested User's Avatar">
+                </div>
+            </a>
+            <div class="user-info">
+                <a href="#" class="user-link">
+                    <h4>Suggested User</h4>
+                </a>
+                <p>@username</p>
+            </div>
+            <button class="follow-btn" data-user-id="">Follow</button>
+        </div>
+    </template>
+    <!-- Follow List Modal -->
+<!-- <div id="follow-modal" class="follow-modal">
+    <div class="follow-modal-content">
+      <h2>Followers</h2>
+      <div id="follow-list" class="follow-user-list">
+        <div class="loading-spinner small"><i class="fas fa-spinner fa-spin"></i></div>
+      </div>
+      <button class="close-modal-btn" onclick="document.getElementById('follow-modal').classList.remove('active')">
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  </div> -->
+  <!-- <script src="{{ url_for('static', filename='js/auth.js') }}"></script> -->
+   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+   
+  
+</body>
+</html>

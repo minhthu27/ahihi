@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Settings - ConnectHub</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+</head>
+<body>
+    <div class="layout">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="logo">
+                <i class="fas fa-project-diagram"></i>
+                <h1>ConnectHub</h1>
+            </div>
+            
+            <nav class="main-nav">
+                <ul>
+                    <li>
+                        <a href="{{ url_for('dashboard') }}">
+                            <i class="fas fa-home"></i>
+                            <span>Dashboard</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('explore') }}">
+                            <i class="fas fa-compass"></i>
+                            <span>Explore</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('notifications') }}">
+                            <i class="fas fa-bell"></i>
+                            <span>Notifications</span>
+                            <span class="notification-badge" id="notification-badge"></span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="#">
+                            <i class="fas fa-envelope"></i>
+                            <span>Messages</span>
+                        </a>
+                    </li>
+                    <li>
+                        <a href="{{ url_for('profile') }}">
+                            <i class="fas fa-user"></i>
+                            <span>Profile</span>
+                        </a>
+                    </li>
+                    <li class="active">
+                        <a href="{{ url_for('settings') }}">
+                            <i class="fas fa-cog"></i>
+                            <span>Settings</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+            
+            <div class="following-section">
+                <h3>Following</h3>
+                <ul class="following-list">
+                    <!-- Following list will be loaded dynamically -->
+                    <div class="loading-spinner small">
+                        <i class="fas fa-spinner fa-spin"></i>
+                    </div>
+                </ul>
+                <a href="#" class="see-all-link">See all</a>
+            </div>
+            
+            <div class="user-profile" id="user-profile-menu">
+                <div class="user-avatar">
+                    <img src="{{ url_for('static', filename='uploads/default-avatar-1.jpg') }}" alt="User Avatar" id="current-user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3 id="current-user-name">John Doe</h3>
+                    <p id="current-user-handle">@johndoe</p>
+                </div>
+                <button id="user-menu-toggle" class="menu-toggle">
+                    <i class="fas fa-ellipsis-h"></i>
+                </button>
+                
+                <!-- User dropdown menu -->
+                <div class="user-dropdown" id="user-dropdown">
+                    <ul>
+                        <li><a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> View Profile</a></li>
+                        <li><a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                        <li><a href="#" id="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</a></li>
+                        <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
+                    </ul>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Error/Success Messages -->
+            <div class="message-container">
+                <div class="error-message" id="error-message">
+                    <i class="fas fa-exclamation-circle"></i>
+                    <span id="error-text">Error message will appear here</span>
+                    <button class="close-message"><i class="fas fa-times"></i></button>
+                </div>
+                <div class="success-message" id="success-message">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="success-text">Success message will appear here</span>
+                    <button class="close-message"><i class="fas fa-times"></i></button>
+                </div>
+            </div>
+
+            <!-- Settings Header -->
+            <div class="settings-header">
+                <h1>Settings</h1>
+                <p>Manage your account settings and preferences</p>
+            </div>
+
+            <!-- Settings Navigation -->
+            <div class="settings-nav">
+                <button class="settings-nav-btn active" data-tab="profile-settings">Profile</button>
+                <button class="settings-nav-btn" data-tab="account-settings">Account</button>
+                <button class="settings-nav-btn" data-tab="privacy-settings">Privacy</button>
+                <button class="settings-nav-btn" data-tab="notification-settings">Notifications</button>
+                <button class="settings-nav-btn" data-tab="appearance-settings">Appearance</button>
+            </div>
+
+            <!-- Settings Content -->
+            <div class="settings-content">
+                <!-- Profile Settings -->
+                <div id="profile-settings" class="settings-tab active">
+                    <div class="settings-section">
+                        <h2>Profile Information</h2>
+                        <p>Update your profile information</p>
+                        
+                        <form id="profile-form" class="settings-form">
+                            <div class="form-group">
+                                <label for="fullname">Full Name</label>
+                                <input type="text" id="fullname" name="fullname" placeholder="Your full name">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="username">Username</label>
+                                <input type="text" id="username" name="username" placeholder="Your username">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="bio">Bio</label>
+                                <textarea id="bio" name="bio" placeholder="Tell us about yourself" rows="4"></textarea>
+                            </div>
+                            
+                            <button type="submit" class="save-btn">Save Changes</button>
+                        </form>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h2>Profile Picture</h2>
+                        <p>Upload a new profile picture</p>
+                        
+                        <div class="avatar-upload">
+                            <div class="current-avatar">
+                                <img src="{{ url_for('static', filename='uploads/default-avatar-1.jpg') }}" alt="Current Avatar" id="avatar-preview">
+                            </div>
+                            
+                            <div class="avatar-actions">
+                                <label for="avatar-upload" class="upload-btn">
+                                    <i class="fas fa-upload"></i> Upload New Picture
+                                </label>
+                                <input type="file" id="avatar-upload" accept="image/*" hidden>
+                                <button id="remove-avatar" class="remove-btn">
+                                    <i class="fas fa-trash"></i> Remove Picture
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h2>Cover Photo</h2>
+                        <p>Upload a new cover photo</p>
+                        
+                        <div class="cover-upload">
+                            <div class="current-cover">
+                                <img src="{{ url_for('static', filename='uploads/default-cover.jpg') }}" alt="Current Cover" id="cover-preview">
+                            </div>
+                            
+                            <div class="cover-actions">
+                                <label for="cover-upload" class="upload-btn">
+                                    <i class="fas fa-upload"></i> Upload New Cover
+                                </label>
+                                <input type="file" id="cover-upload" accept="image/*" hidden>
+                                <button id="remove-cover" class="remove-btn">
+                                    <i class="fas fa-trash"></i> Remove Cover
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Account Settings -->
+                <div id="account-settings" class="settings-tab">
+                    <div class="settings-section">
+                        <h2>Email Address</h2>
+                        <p>Update your email address</p>
+                        
+                        <form id="email-form" class="settings-form">
+                            <div class="form-group">
+                                <label for="email">Email</label>
+                                <input type="email" id="email" name="email" placeholder="Your email address">
+                            </div>
+                            
+                            <button type="submit" class="save-btn">Update Email</button>
+                        </form>
+                    </div>
+                    
+                    <div class="settings-section">
+                        <h2>Change Password</h2>
+                        <p>Update your password</p>
+                        
+                        <form id="password-form" class="settings-form">
+                            <div class="form-group">
+                                <label for="current-password">Current Password</label>
+                                <input type="password" id="current-password" name="current_password" placeholder="Your current password">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="new-password">New Password</label>
+                                <input type="password" id="new-password" name="new_password" placeholder="Your new password">
+                            </div>
+                            
+                            <div class="form-group">
+                                <label for="confirm-password">Confirm New Password</label>
+                                <input type="password" id="confirm-password" name="confirm_password" placeholder="Confirm your new password">
+                            </div>
+                            
+                            <button type="submit" class="save-btn">Change Password</button>
+                        </form>
+                    </div>
+                    
+                    <div class="settings-section danger-zone">
+                        <h2>Danger Zone</h2>
+                        <p>Permanently delete your account</p>
+                        
+                        <button id="delete-account-btn" class="delete-btn">
+                            <i class="fas fa-exclamation-triangle"></i> Delete Account
+                        </button>
+                    </div>
+                </div>
+                
+                <!-- Privacy Settings -->
+                <div id="privacy-settings" class="settings-tab">
+                    <div class="settings-section">
+                        <h2>Privacy Options</h2>
+                        <p>Control who can see your content</p>
+                        
+                        <form id="privacy-form" class="settings-form">
+                            <div class="form-group">
+                                <label>Profile Visibility</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="profile_visibility" value="public" checked>
+                                        <span>Public</span>
+                                        <p class="option-description">Anyone can see your profile</p>
+                                    </label>
+                                    
+                                    <label class="radio-label">
+                                        <input type="radio" name="profile_visibility" value="followers">
+                                        <span>Followers Only</span>
+                                        <p class="option-description">Only your followers can see your profile</p>
+                                    </label>
+                                    
+                                    <label class="radio-label">
+                                        <input type="radio" name="profile_visibility" value="private">
+                                        <span>Private</span>
+                                        <p class="option-description">Only you can see your profile</p>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label>Post Visibility</label>
+                                <div class="radio-group">
+                                    <label class="radio-label">
+                                        <input type="radio" name="post_visibility" value="public" checked>
+                                        <span>Public</span>
+                                        <p class="option-description">Anyone can see your posts</p>
+                                    </label>
+                                    
+                                    <label class="radio-label">
+                                        <input type="radio" name="post_visibility" value="followers">
+                                        <span>Followers Only</span>
+                                        <p class="option-description">Only your followers can see your posts</p>
+                                    </label>
+                                </div>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="show_online_status" checked>
+                                    <span>Show Online Status</span>
+                                </label>
+                                <p class="option-description">Allow others to see when you're online</p>
+                            </div>
+                            
+                            <button type="submit" class="save-btn">Save Privacy Settings</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Notification Settings -->
+                <div id="notification-settings" class="settings-tab">
+                    <div class="settings-section">
+                        <h2>Notification Preferences</h2>
+                        <p>Control how you receive notifications</p>
+                        
+                        <form id="notification-form" class="settings-form">
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="email_notifications" checked>
+                                    <span>Email Notifications</span>
+                                </label>
+                                <p class="option-description">Receive notifications via email</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="push_notifications" checked>
+                                    <span>Push Notifications</span>
+                                </label>
+                                <p class="option-description">Receive notifications in your browser</p>
+                            </div>
+                            
+                            <h3 class="settings-subheading">Notify me about</h3>
+                            
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="new_follower" checked>
+                                    <span>New Followers</span>
+                                </label>
+                                <p class="option-description">When someone follows you</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="post_likes" checked>
+                                    <span>Post Likes</span>
+                                </label>
+                                <p class="option-description">When someone likes your post</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="post_comments" checked>
+                                    <span>Post Comments</span>
+                                </label>
+                                <p class="option-description">When someone comments on your post</p>
+                            </div>
+                            
+                            <div class="form-group">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" name="mentions" checked>
+                                    <span>Mentions</span>
+                                </label>
+                                <p class="option-description">When someone mentions you in a post or comment</p>
+                            </div>
+                            
+                            <button type="submit" class="save-btn">Save Notification Settings</button>
+                        </form>
+                    </div>
+                </div>
+                
+                <!-- Appearance Settings -->
+                <div id="appearance-settings" class="settings-tab">
+                    <div class="settings-section">
+                      <h2>Theme</h2>
+                      <p>Choose your preferred theme</p>
+                      
+                      <form id="theme-form" class="settings-form">
+                        <div class="theme-options">
+                          <label class="theme-option">
+                            <input type="radio" name="theme" value="light" checked>
+                            <div class="theme-preview light-theme">
+                              <div class="theme-content">
+                                <div class="theme-sidebar"></div>
+                                <div class="theme-main"></div>
+                              </div>
+                            </div>
+                            <span>Light</span>
+                          </label>
+                          
+                          <label class="theme-option">
+                            <input type="radio" name="theme" value="dark">
+                            <div class="theme-preview dark-theme">
+                              <div class="theme-content">
+                                <div class="theme-sidebar"></div>
+                                <div class="theme-main"></div>
+                              </div>
+                            </div>
+                            <span>Dark</span>
+                          </label>
+                        </div>
+                        
+                        <button type="submit" class="save-btn">Save Theme</button>
+                      </form>
+                    </div>
+                  </div>
+            </div>
+        </main>
+
+        <!-- Right Sidebar -->
+        <aside class="right-sidebar">
+            <div class="settings-help">
+                <h3>Settings Help</h3>
+                <div class="help-content">
+                    <div class="help-item">
+                        <h4><i class="fas fa-user"></i> Profile Settings</h4>
+                        <p>Update your personal information, profile picture, and cover photo.</p>
+                    </div>
+                    
+                    <div class="help-item">
+                        <h4><i class="fas fa-lock"></i> Account Settings</h4>
+                        <p>Manage your email address and password.</p>
+                    </div>
+                    
+                    <div class="help-item">
+                        <h4><i class="fas fa-shield-alt"></i> Privacy Settings</h4>
+                        <p>Control who can see your content  Privacy Settings</h4>
+                        <p>Control who can see your content and manage your privacy preferences.</p>
+                    </div>
+                    
+                    <div class="help-item">
+                        <h4><i class="fas fa-bell"></i> Notification Settings</h4>
+                        <p>Choose how and when you receive notifications.</p>
+                    </div>
+                    
+                    <div class="help-item">
+                        <h4><i class="fas fa-paint-brush"></i> Appearance Settings</h4>
+                        <p>Customize the look and feel of ConnectHub.</p>
+                    </div>
+                </div>
+                
+                <div class="help-footer">
+                    <a href="#" class="help-link"><i class="fas fa-question-circle"></i> Help Center</a>
+                    <a href="#" class="help-link"><i class="fas fa-file-alt"></i> Privacy Policy</a>
+                    <a href="#" class="help-link"><i class="fas fa-file-contract"></i> Terms of Service</a>
+                </div>
+            </div>
+        </aside>
+    </div>
+
+    <!-- Delete Account Confirmation Modal -->
+    <div id="delete-account-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Delete Account</h2>
+                <button class="close-modal"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="warning-icon">
+                    <i class="fas fa-exclamation-triangle"></i>
+                </div>
+                <h3>Are you sure you want to delete your account?</h3>
+                <p>This action cannot be undone. All of your data will be permanently deleted.</p>
+                
+                <div class="confirmation-input">
+                    <label for="delete-confirmation">Type "DELETE" to confirm:</label>
+                    <input type="text" id="delete-confirmation" placeholder="DELETE">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="cancel-btn">Cancel</button>
+                <button id="confirm-delete-btn" class="delete-btn" disabled>Delete Account</button>
+            </div>
+        </div>
+    </div>
+  <!-- <script src="{{ url_for('static', filename='js/auth.js') }}"></script> -->
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+
+    <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
+</body>
+</html>
