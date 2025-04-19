@@ -20,6 +20,7 @@ from backend.search import search_bp
 from backend.settings import settings_bp
 from backend.notifications import notifications_bp
 from backend.messages import messages_bp
+from backend.admin import admin_bp
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)
 
@@ -51,6 +52,7 @@ app.register_blueprint(search_bp, url_prefix='/api/search')
 app.register_blueprint(settings_bp, url_prefix='/api/settings')
 app.register_blueprint(notifications_bp, url_prefix='/api/notifications')
 app.register_blueprint(messages_bp, url_prefix='/api/messages')
+app.register_blueprint(admin_bp)
 
 # Ensure upload directory exists
 os.makedirs(Config.UPLOAD_FOLDER, exist_ok=True)
