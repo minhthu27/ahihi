@@ -100,7 +100,7 @@ def search_posts():
 @jwt_required()
 def search_users():
     try:
-        query = request.args.get('q', '').lower()  # Chuyển query về chữ thường
+        query = request.args.get('q', '').lower().strip()
         limit = int(request.args.get('limit', 20))
 
         if not query:
@@ -108,13 +108,11 @@ def search_users():
 
         pipeline = [
             {
-                '$search': {
-                    'index': 'default',
-                    'text': {
-                        'query': query,
-                        'path': ['username', 'fullname'],
-                        'caseSensitive': False  # Không phân biệt hoa/thường
-                    }
+                '$match': {
+                    '$or': [
+                        {'username': {'$regex': query, '$options': 'i'}},
+                        {'fullname': {'$regex': query, '$options': 'i'}}
+                    ]
                 }
             },
             {
@@ -122,21 +120,17 @@ def search_users():
                     '_id': {'$toString': '$_id'},
                     'username': 1,
                     'fullname': 1,
-                    'email': 1,
-                    'profile_picture': 1,
-                    'bio': 1,
-                    'score': {'$meta': 'searchScore'}
+                    'profile_picture': {'$ifNull': ['$avatar', '/static/uploads/default-avatar-1.jpg']},
+                    'bio': {'$ifNull': ['$bio', 'No bio available']}
                 }
             },
             {
-                '$sort': {'score': {'$meta': 'searchScore'}}
+                '$sort': {'username': 1}
             },
             {'$limit': limit}
         ]
 
         users = list(db.users.aggregate(pipeline))
-
-        # Thêm isFollowing vào mỗi user
         current_user_id = get_jwt_identity()
         current_user = db.users.find_one({"_id": ObjectId(current_user_id)})
         following = current_user.get("following", [])
@@ -150,7 +144,7 @@ def search_users():
             'query': query
         }
 
-        return jsonify(response_data)
+        return jsonify(response_data), 200
     except Exception as e:
         logger.error(f"Error searching users: {str(e)}")
         return jsonify({'error': 'Failed to search users'}), 500

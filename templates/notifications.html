@@ -39,7 +39,7 @@
                         </a>
                     </li>
                     <li>
-                        <a href="#">
+                        <a href="{{ url_for('messages') }}">
                             <i class="fas fa-envelope"></i>
                             <span>Messages</span>
                         </a>
@@ -86,7 +86,7 @@
                 <div class="user-dropdown" id="user-dropdown">
                     <ul>
                         <li><a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> View Profile</a></li>
-                        <li><a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Settings</a></li>
+                        <!-- <li><a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Settings</a></li> -->
                         <li><a href="#" id="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</a></li>
                         <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                     </ul>

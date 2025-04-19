@@ -2259,24 +2259,16 @@ function setupShareProfileButton() {
 
 // Cập nhật hàm openEditProfileModal để gọi API cập nhật avatar trong comments sau khi cập nhật profile
 
-// Improved openEditProfileModal function with enhanced image handling
 // Enhanced openEditProfileModal function with improved cover image handling
 function openEditProfileModal() {
-  const currentUser = JSON.parse(localStorage.getItem("current_user"));
-  if (!currentUser) return;
-
-  // Create modal
-  const modal = document.createElement("div");
-  modal.className = "modal edit-profile-modal";
-  modal.id = "edit-profile-modal";
-
-  // Get cover image from user data
-  const coverImage = currentUser.cover || currentUser.coverImage || "/static/uploads/default-cover.jpg";
-  
-  // Add timestamp to prevent caching
+  // Get current user data
+  const currentUser = JSON.parse(localStorage.getItem("current_user") || "{}");
   const timestamp = new Date().getTime();
 
-  // Modal HTML content with improved cover image section
+  // Create modal HTML
+  const modal = document.createElement("div");
+  modal.id = "edit-profile-modal";
+  modal.className = "modal";
   modal.innerHTML = `
     <div class="modal-content">
       <div class="modal-header">
@@ -2285,232 +2277,207 @@ function openEditProfileModal() {
       </div>
       <div class="modal-body">
         <form id="edit-profile-form">
-          <!-- Cover Photo Section - Moved to top for better UX -->
-          <div class="form-group cover-photo-section">
+          <div class="form-group cover-upload-section">
             <label>Cover Photo</label>
-            <div class="cover-upload-container">
-              <div class="cover-preview">
-                <img src="${coverImage}?t=${timestamp}" alt="Cover Preview" id="cover-preview">
-              </div>
-              <div class="cover-options">
-                <div class="cover-upload-option">
-                  <input type="file" id="edit-cover" accept="image/*">
-                  <label for="edit-cover" class="btn btn-outline">Upload Cover</label>
-                </div>
-                <div class="cover-upload-option">
-                  <button type="button" id="external-cover-btn" class="btn btn-outline">External Image</button>
-                </div>
-                <div class="cover-upload-option">
-                  <button type="button" id="remove-cover-btn" class="btn btn-danger">Remove Cover</button>
-                </div>
-              </div>
-              <div id="external-cover-input-container" style="display: none; margin-top: 10px;">
-                <input type="text" id="external-cover-url" placeholder="Enter image URL" class="form-control">
-                <button type="button" id="load-external-cover" class="btn btn-primary">Load</button>
-              </div>
+            <div class="cover-preview">
+              <img id="cover-preview" src="${
+                currentUser.cover || "/static/uploads/default-cover.jpg"
+              }?t=${timestamp}" alt="Cover Preview">
+            </div>
+            <div class="cover-actions">
+              <label for="edit-cover" class="btn secondary">
+                <i class="fas fa-upload"></i> Upload New Cover
+              </label>
+              <input type="file" id="edit-cover" accept="image/*" style="display: none;">
+              <button type="button" id="remove-cover-btn" class="btn secondary">
+                <i class="fas fa-trash"></i> Remove Cover
+              </button>
             </div>
           </div>
-          
+          <div class="form-group avatar-upload-section">
+            <label>Profile Picture</label>
+            <div class="avatar-preview">
+              <img id="avatar-preview" src="${
+                currentUser.avatar || "/static/uploads/default-avatar-1.jpg"
+              }?t=${timestamp}" alt="Avatar Preview">
+            </div>
+            <div class="avatar-actions">
+              <label for="edit-avatar" class="btn secondary">
+                <i class="fas fa-upload"></i> Upload New Picture
+              </label>
+              <input type="file" id="edit-avatar" accept="image/*" style="display: none;">
+              <button type="button" id="remove-avatar-btn" class="btn secondary">
+                <i class="fas fa-trash"></i> Remove Picture
+              </button>
+            </div>
+          </div>
           <div class="form-group">
             <label for="edit-fullname">Name</label>
-            <input type="text" id="edit-fullname" value="${currentUser.fullname || ""}" placeholder="Your name">
+            <input type="text" id="edit-fullname" value="${currentUser.fullname || ""}" maxlength="50">
           </div>
-          
           <div class="form-group">
             <label for="edit-bio">Bio</label>
-            <textarea id="edit-bio" placeholder="Tell us about yourself">${currentUser.bio || ""}</textarea>
+            <textarea id="edit-bio" maxlength="160">${currentUser.bio || ""}</textarea>
           </div>
-          
           <div class="form-group">
             <label for="edit-location">Location</label>
-            <input type="text" id="edit-location" value="${currentUser.location || ""}" placeholder="Your location">
+            <input type="text" id="edit-location" value="${currentUser.location || ""}" maxlength="30">
           </div>
-          
           <div class="form-group">
             <label for="edit-website">Website</label>
-            <input type="text" id="edit-website" value="${currentUser.website || ""}" placeholder="Your website">
+            <input type="url" id="edit-website" value="${currentUser.website || ""}" maxlength="100">
           </div>
-          
-          <div class="form-group">
-            <label>Profile Picture</label>
-            <div class="avatar-upload-container">
-              <div class="avatar-preview">
-                <img src="${currentUser.avatar || "/static/uploads/default-avatar-1.jpg"}?t=${timestamp}" alt="Avatar Preview" id="avatar-preview">
-              </div>
-              <div class="avatar-options">
-                <div class="avatar-upload-option">
-                  <input type="file" id="edit-avatar" accept="image/*">
-                  <label for="edit-avatar" class="btn btn-outline">Upload Image</label>
-                </div>
-                <div class="avatar-upload-option">
-                  <button type="button" id="external-avatar-btn" class="btn btn-outline">External Image</button>
-                </div>
-                <div class="avatar-upload-option">
-                  <button type="button" id="remove-avatar-btn" class="btn btn-danger">Remove</button>
-                </div>
-              </div>
-              <div id="external-avatar-input-container" style="display: none; margin-top: 10px;">
-                <input type="text" id="external-avatar-url" placeholder="Enter image URL" class="form-control">
-                <button type="button" id="load-external-avatar" class="btn btn-primary">Load</button>
-              </div>
-            </div>
+          <div class="form-actions">
+            <button type="button" class="btn secondary cancel-btn">Cancel</button>
+            <button type="button" class="btn primary save-profile-btn" disabled>Save Changes</button>
           </div>
         </form>
-      </div>
-      <div class="modal-footer">
-        <button class="cancel-edit-btn">Cancel</button>
-        <button class="save-profile-btn">Save Changes</button>
       </div>
     </div>
   `;
 
-  // Add modal to body
+  // Append modal to body
   document.body.appendChild(modal);
 
   // Show modal
-  setTimeout(() => {
-    modal.classList.add("active");
-  }, 10);
+  setTimeout(() => modal.classList.add("active"), 10);
 
-  // Setup close modal
+  // Get modal elements
   const closeBtn = modal.querySelector(".close-modal");
-  closeBtn.addEventListener("click", closeModal);
+  const cancelBtn = modal.querySelector(".cancel-btn");
+  const saveBtn = modal.querySelector(".save-profile-btn");
+  const form = modal.querySelector("#edit-profile-form");
+  const coverInput = modal.querySelector("#edit-cover");
+  const coverPreview = modal.querySelector("#cover-preview");
+  const removeCoverBtn = modal.querySelector("#remove-cover-btn");
+  const avatarInput = modal.querySelector("#edit-avatar");
+  const avatarPreview = modal.querySelector("#avatar-preview");
+  const removeAvatarBtn = modal.querySelector("#remove-avatar-btn");
 
-  // Close modal when clicking outside
-  modal.addEventListener("click", (e) => {
-    if (e.target === modal) {
-      closeModal();
-    }
+  // Enable save button on input changes
+  const inputs = form.querySelectorAll("input, textarea");
+  inputs.forEach((input) => {
+    input.addEventListener("input", () => {
+      saveBtn.disabled = false;
+    });
   });
 
-  // Setup cancel button
-  const cancelBtn = modal.querySelector(".cancel-edit-btn");
-  cancelBtn.addEventListener("click", closeModal);
-
-  // Setup avatar preview
-  const avatarInput = document.getElementById("edit-avatar");
-  const avatarPreview = document.getElementById("avatar-preview");
-
-  if (avatarInput && avatarPreview) {
-    avatarInput.addEventListener("change", function () {
-      if (this.files && this.files[0]) {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          avatarPreview.src = e.target.result;
-        };
-        reader.readAsDataURL(this.files[0]);
-      }
-    });
-  }
-
   // Setup cover preview
-  const coverInput = document.getElementById("edit-cover");
-  const coverPreview = document.getElementById("cover-preview");
-
   if (coverInput && coverPreview) {
     coverInput.addEventListener("change", function () {
       if (this.files && this.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
           coverPreview.src = e.target.result;
+          saveBtn.disabled = false;
         };
         reader.readAsDataURL(this.files[0]);
       }
     });
   }
 
-  // Setup external avatar button
-  const externalAvatarBtn = document.getElementById("external-avatar-btn");
-  const externalAvatarContainer = document.getElementById("external-avatar-input-container");
+  // Setup remove cover button
+  if (removeCoverBtn && coverPreview) {
+    removeCoverBtn.addEventListener("click", async () => {
+      if (confirm("Are you sure you want to remove your cover photo?")) {
+        try {
+          const token = localStorage.getItem("auth_token");
+          coverPreview.src = "/static/uploads/default-cover.jpg";
+          const response = await fetch("/api/settings/profile", {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ cover: "/static/uploads/default-cover.jpg" }),
+          });
 
-  if (externalAvatarBtn && externalAvatarContainer) {
-    externalAvatarBtn.addEventListener("click", () => {
-      externalAvatarContainer.style.display = externalAvatarContainer.style.display === "none" ? "block" : "none";
-    });
-  }
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to remove cover photo");
+          }
 
-  // Setup load external avatar button
-  const loadExternalAvatarBtn = document.getElementById("load-external-avatar");
-  const externalAvatarUrl = document.getElementById("external-avatar-url");
-
-  if (loadExternalAvatarBtn && externalAvatarUrl && avatarPreview) {
-    loadExternalAvatarBtn.addEventListener("click", () => {
-      const url = externalAvatarUrl.value.trim();
-      if (url) {
-        // Test if the URL is valid by creating a temporary image
-        const tempImg = new Image();
-        tempImg.onload = () => {
-          avatarPreview.src = url;
-          externalAvatarContainer.style.display = "none";
-        };
-        tempImg.onerror = () => {
-          showError("Invalid image URL. Please enter a valid URL.");
-        };
-        tempImg.src = url;
+          showSuccess("Cover photo removed successfully!");
+          const currentUser = JSON.parse(localStorage.getItem("current_user") || "{}");
+          currentUser.cover = "/static/uploads/default-cover.jpg";
+          currentUser.coverImage = "/static/uploads/default-cover.jpg";
+          localStorage.setItem("current_user", JSON.stringify(currentUser));
+          saveBtn.disabled = false;
+        } catch (error) {
+          console.error("Error removing cover photo:", error);
+          showError(error.message || "Failed to remove cover photo. Please try again.");
+        }
       }
     });
   }
 
-  // Setup external cover button
-  const externalCoverBtn = document.getElementById("external-cover-btn");
-  const externalCoverContainer = document.getElementById("external-cover-input-container");
-
-  if (externalCoverBtn && externalCoverContainer) {
-    externalCoverBtn.addEventListener("click", () => {
-      externalCoverContainer.style.display = externalCoverContainer.style.display === "none" ? "block" : "none";
-    });
-  }
-
-  // Setup load external cover button
-  const loadExternalCoverBtn = document.getElementById("load-external-cover");
-  const externalCoverUrl = document.getElementById("external-cover-url");
-
-  if (loadExternalCoverBtn && externalCoverUrl && coverPreview) {
-    loadExternalCoverBtn.addEventListener("click", () => {
-      const url = externalCoverUrl.value.trim();
-      if (url) {
-        // Test if the URL is valid by creating a temporary image
-        const tempImg = new Image();
-        tempImg.onload = () => {
-          coverPreview.src = url;
-          externalCoverContainer.style.display = "none";
+  // Setup avatar preview
+  if (avatarInput && avatarPreview) {
+    avatarInput.addEventListener("change", function () {
+      if (this.files && this.files[0]) {
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          avatarPreview.src = e.target.result;
+          saveBtn.disabled = false;
         };
-        tempImg.onerror = () => {
-          showError("Invalid image URL. Please enter a valid URL.");
-        };
-        tempImg.src = url;
+        reader.readAsDataURL(this.files[0]);
       }
     });
   }
 
   // Setup remove avatar button
-  const removeAvatarBtn = document.getElementById("remove-avatar-btn");
-
   if (removeAvatarBtn && avatarPreview) {
-    removeAvatarBtn.addEventListener("click", () => {
-      avatarPreview.src = "/static/uploads/default-avatar-1.jpg";
+    removeAvatarBtn.addEventListener("click", async () => {
+      if (confirm("Are you sure you want to remove your profile picture?")) {
+        try {
+          const token = localStorage.getItem("auth_token");
+          avatarPreview.src = "/static/uploads/default-avatar-1.jpg";
+          const response = await fetch("/api/settings/profile", {
+            method: "PUT",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ avatar: "/static/uploads/default-avatar-1.jpg" }),
+          });
+
+          if (!response.ok) {
+            const errorData = await response.json();
+            throw new Error(errorData.error || "Failed to remove profile picture");
+          }
+
+          showSuccess("Profile picture removed successfully!");
+          const currentUser = JSON.parse(localStorage.getItem("current_user") || "{}");
+          currentUser.avatar = "/static/uploads/default-avatar-1.jpg";
+          localStorage.setItem("current_user", JSON.stringify(currentUser));
+          saveBtn.disabled = false;
+          updateProfileUI(currentUser);
+        } catch (error) {
+          console.error("Error removing profile picture:", error);
+          showError(error.message || "Failed to remove profile picture. Please try again.");
+        }
+      }
     });
   }
 
-  // Setup remove cover button
-  const removeCoverBtn = document.getElementById("remove-cover-btn");
+  // Close modal
+  const closeModal = () => {
+    modal.classList.remove("active");
+    setTimeout(() => modal.remove(), 300);
+  };
 
-  if (removeCoverBtn && coverPreview) {
-    removeCoverBtn.addEventListener("click", () => {
-      coverPreview.src = "/static/uploads/default-cover.jpg";
-    });
-  }
+  closeBtn.addEventListener("click", closeModal);
+  cancelBtn.addEventListener("click", closeModal);
 
-  // Setup save button
-  const saveBtn = modal.querySelector(".save-profile-btn");
+  // Handle save changes
   saveBtn.addEventListener("click", saveProfileChanges);
 
-  function closeModal() {
-    modal.classList.remove("active");
-    setTimeout(() => {
-      modal.remove();
-    }, 300);
-  }
+  // Close modal on click outside
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
 }
 
 // Function to save profile changes
@@ -2530,72 +2497,59 @@ async function saveProfileChanges() {
     const location = document.getElementById("edit-location").value.trim();
     const website = document.getElementById("edit-website").value.trim();
 
-    // Get avatar and cover images
+    // Get avatar and cover inputs
     const avatarInput = document.getElementById("edit-avatar");
-    const avatarPreview = document.getElementById("avatar-preview");
     const coverInput = document.getElementById("edit-cover");
     const coverPreview = document.getElementById("cover-preview");
 
-    // Create form data
+    // Create form data for profile update
     const formData = new FormData();
     formData.append("fullname", fullname);
     formData.append("bio", bio);
     formData.append("location", location);
     formData.append("website", website);
 
-    // Check if avatar is from file input
+    // Handle avatar
     if (avatarInput.files && avatarInput.files[0]) {
       formData.append("avatar", avatarInput.files[0]);
-      console.log("Adding avatar file to form data");
-    }
-    // Check if avatar is from external URL
-    else if (
-      avatarPreview.src &&
-      !avatarPreview.src.includes("default-avatar") &&
-      !avatarPreview.src.startsWith("data:") &&
-      !avatarPreview.src.includes(window.location.origin)
-    ) {
-      formData.append("avatarUrl", avatarPreview.src);
-      console.log("Adding external avatar URL to form data:", avatarPreview.src);
-    }
-    // Check if avatar was removed
-    else if (avatarPreview.src.includes("default-avatar")) {
-      formData.append("removeAvatar", "true");
-      console.log("Removing avatar");
+      console.log("Appending avatar file:", avatarInput.files[0].name);
     }
 
-    // Check if cover is from file input
+    // Handle cover image upload separately using /api/settings/cover
+    let coverUrl = null;
     if (coverInput.files && coverInput.files[0]) {
-      formData.append("cover", coverInput.files[0]);
-      console.log("Adding cover file to form data");
-    }
-    // Check if cover is from external URL
-    else if (
-      coverPreview.src &&
-      !coverPreview.src.includes("default-cover") &&
-      !coverPreview.src.startsWith("data:") &&
-      !coverPreview.src.includes(window.location.origin)
-    ) {
-      formData.append("coverUrl", coverPreview.src);
-      console.log("Adding external cover URL to form data:", coverPreview.src);
-    }
-    // Check if cover was removed
-    else if (coverPreview.src.includes("default-cover")) {
-      formData.append("removeCover", "true");
-      console.log("Removing cover");
+      const coverFormData = new FormData();
+      coverFormData.append("cover", coverInput.files[0]);
+
+      console.log("Uploading cover file:", coverInput.files[0].name);
+
+      const coverResponse = await fetch("/api/settings/cover", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        body: coverFormData,
+      });
+
+      if (!coverResponse.ok) {
+        const errorData = await coverResponse.json();
+        throw new Error(errorData.error || "Failed to upload cover image");
+      }
+
+      const coverResult = await coverResponse.json();
+      coverUrl = coverResult.cover;
+      console.log("Cover uploaded successfully:", coverUrl);
+
+      // Update cover preview
+      const timestamp = new Date().getTime();
+      coverPreview.src = `${coverUrl}?t=${timestamp}`;
     }
 
-    // Log form data for debugging
-    for (let pair of formData.entries()) {
-      console.log(pair[0] + ': ' + (pair[1] instanceof File ? pair[1].name : pair[1]));
-    }
-
-    // Send request to server
+    // Send profile update request
     const response = await fetch("/api/profile/update", {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
-        // Do NOT set Content-Type when sending FormData
       },
       body: formData,
     });
@@ -2606,15 +2560,15 @@ async function saveProfileChanges() {
     }
 
     const updatedUser = await response.json();
-    console.log("Profile updated successfully:", updatedUser);
+    console.log("Profile updated:", updatedUser);
 
-    // Make sure cover image is properly updated in the user object
-    if (updatedUser.cover) {
-      // Also set coverImage for compatibility
+    // Ensure cover field consistency
+    if (coverUrl) {
+      updatedUser.cover = coverUrl;
+      updatedUser.coverImage = coverUrl; // For backward compatibility
+    } else {
+      updatedUser.cover = updatedUser.cover || updatedUser.coverImage || "/static/uploads/default-cover.jpg";
       updatedUser.coverImage = updatedUser.cover;
-    } else if (updatedUser.coverImage) {
-      // Also set cover for compatibility
-      updatedUser.cover = updatedUser.coverImage;
     }
 
     // Update user data in localStorage
@@ -2623,25 +2577,23 @@ async function saveProfileChanges() {
     // Update profile UI
     updateProfileUI(updatedUser);
 
-    // Update avatar in all comments and posts
-    await updateUserAvatarInContent();
+    // Update avatar in comments and posts if changed
+    if (avatarInput.files && avatarInput.files[0]) {
+      await updateUserAvatarInContent();
+    }
 
     // Close modal
     const modal = document.getElementById("edit-profile-modal");
     if (modal) {
       modal.classList.remove("active");
-      setTimeout(() => {
-        modal.remove();
-      }, 300);
+      setTimeout(() => modal.remove(), 300);
     }
 
     // Show success message
     showSuccess("Profile updated successfully!");
 
     // Reload page to reflect changes
-    setTimeout(() => {
-      window.location.reload();
-    }, 1000);
+    setTimeout(() => window.location.reload(), 1000);
   } catch (error) {
     console.error("Error updating profile:", error);
     showError(error.message || "Failed to update profile. Please try again.");
@@ -2654,7 +2606,6 @@ async function saveProfileChanges() {
     }
   }
 }
-
 // Function to update user avatar in all comments and posts
 async function updateUserAvatarInContent() {
   try {

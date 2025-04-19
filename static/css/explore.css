@@ -423,3 +423,7 @@ body.dark-mode .explore-search input:focus {
   display: block;
   border-radius: 8px;
 }
+.highlight {
+  background-color: #ffeb3b;
+  font-weight: bold;
+}

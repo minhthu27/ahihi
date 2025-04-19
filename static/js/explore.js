@@ -494,19 +494,18 @@ async function loadPopularPosts(silent = false) {
 // Load suggested people
 async function loadSuggestedPeople(silent = false) {
   try {
-    const token = localStorage.getItem("auth_token")
-    const suggestedPeopleContainer = document.getElementById("suggested-people")
+    const token = localStorage.getItem("auth_token");
+    const suggestedPeopleContainer = document.getElementById("suggested-people");
 
-    if (!suggestedPeopleContainer) return
+    if (!suggestedPeopleContainer) return;
 
-    // Only show loading spinner if not a silent update
     if (!silent) {
       suggestedPeopleContainer.innerHTML = `
           <div class="loading-spinner">
             <i class="fas fa-spinner fa-spin"></i>
             <span>Loading suggested people...</span>
           </div>
-        `
+        `;
     }
 
     const response = await fetch("/api/users/discover", {
@@ -515,110 +514,121 @@ async function loadSuggestedPeople(silent = false) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-    })
+    });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch suggested people")
+      throw new Error("Failed to fetch suggested people");
     }
 
-    const users = await response.json()
+    const users = await response.json();
 
-    // If this is a silent update, compare with existing users
     if (silent) {
       const existingUserIds = Array.from(suggestedPeopleContainer.querySelectorAll(".user-card")).map(
         (user) => user.dataset.userId,
-      )
+      );
 
-      // Find new users that aren't in the existing list
-      const newUsers = users.filter((user) => !existingUserIds.includes(user._id))
+      const newUsers = users.filter((user) => !existingUserIds.includes(user._id));
 
       if (newUsers.length > 0) {
-        // Show notification about new users
-        showNewContentNotification(newUsers.length, "suggested people")
+        showNewContentNotification(newUsers.length, "suggested people");
 
-        // Prepend new users at the top
         newUsers.forEach((user) => {
-          const userCard = createUserCardElement(user)
-          suggestedPeopleContainer.insertBefore(userCard, suggestedPeopleContainer.firstChild)
-        })
+          const userCard = createUserCardElement(user); // Không truyền query
+          suggestedPeopleContainer.insertBefore(userCard, suggestedPeopleContainer.firstChild);
+        });
 
-        // Setup follow buttons for new users
-        setupFollowButtons()
+        setupFollowButtons();
       }
 
-      return
+      return;
     }
 
-    // For non-silent updates, clear the container and show all users
-    suggestedPeopleContainer.innerHTML = ""
+    suggestedPeopleContainer.innerHTML = "";
 
     if (users.length === 0) {
       suggestedPeopleContainer.innerHTML = `
           <div class="no-users">
             <p>No suggested people found.</p>
           </div>
-        `
-      return
+        `;
+      return;
     }
 
-    // Render user cards
     users.forEach((user) => {
-      const userCard = createUserCardElement(user)
-      suggestedPeopleContainer.appendChild(userCard)
-    })
+      const userCard = createUserCardElement(user); // Không truyền query
+      suggestedPeopleContainer.appendChild(userCard);
+    });
 
-    // Setup follow buttons
-    setupFollowButtons()
+    setupFollowButtons();
   } catch (error) {
-    console.error("Error loading suggested people:", error)
+    console.error("Error loading suggested people:", error);
 
-    // Only show error if not a silent update
     if (!silent) {
-      const suggestedPeopleContainer = document.getElementById("suggested-people")
+      const suggestedPeopleContainer = document.getElementById("suggested-people");
       if (suggestedPeopleContainer) {
         suggestedPeopleContainer.innerHTML = `
             <div class="error-message">
               <p>Failed to load suggested people. Please try again later.</p>
             </div>
-          `
+          `;
       }
     }
   }
 }
 
 // Search content
+// Search content
 async function searchContent(query, silent = false) {
   try {
-    const token = localStorage.getItem("auth_token")
-    query = query.replace(/^#/, "").toLowerCase() // Chuẩn hóa query
+    const token = localStorage.getItem("auth_token");
+    if (!token) {
+      console.warn("No auth token, redirecting to login");
+      window.location.href = "/";
+      return;
+    }
 
-    const activeTab = document.querySelector(".explore-tab.active")
-    const tabName = activeTab ? activeTab.dataset.tab : "trending"
+    query = query.replace(/^#/, "").toLowerCase().trim(); // Chuẩn hóa query
 
-    const containerId = `${tabName}-content`
-    const container = document.getElementById(containerId)
+    const activeTab = document.querySelector(".explore-tab.active");
+    const tabName = activeTab ? activeTab.dataset.tab : "trending";
 
-    if (!container) return
+    const containerId = `${tabName}-content`;
+    const container = document.getElementById(containerId);
 
-    const contentContainer = document.getElementById(`${tabName}-posts`) || document.getElementById("suggested-people")
+    if (!container) {
+      console.error(`Container not found for ID: ${containerId}`);
+      return;
+    }
+
+    const contentContainer = document.getElementById(`${tabName}-posts`) || document.getElementById("suggested-people");
+
+    if (!contentContainer) {
+      console.error(`Content container not found for tab: ${tabName}`);
+      container.innerHTML = `
+        <div class="error-message">
+          <p>Content container not found. Please try again.</p>
+        </div>
+      `;
+      return;
+    }
 
     if (!silent) {
       contentContainer.innerHTML = `
-                <div class="loading-spinner">
-                    <i class="fas fa-spinner fa-spin"></i>
-                    <span>Searching for "${query}"...</span>
-                </div>
-            `
+        <div class="loading-spinner">
+          <i class="fas fa-spinner fa-spin"></i>
+          <span>Searching for "${query}"...</span>
+        </div>
+      `;
     }
 
-    let endpoint = tabName === "people" ? "/api/search/users" : "/api/search/posts"
-    endpoint += `?q=${encodeURIComponent(query)}`
+    let endpoint = tabName === "people" ? "/api/search/users" : "/api/search/posts";
+    endpoint += `?q=${encodeURIComponent(query)}`;
 
     if (tabName !== "people") {
-      endpoint += `&sort=${tabName}`
-      const activeCategory = document.querySelector(".category-chip.active")
+      endpoint += `&sort=${tabName}`;
+      const activeCategory = document.querySelector(".category-chip.active");
       if (activeCategory && activeCategory.dataset.category !== "all") {
-        endpoint += `&category=${encodeURIComponent(activeCategory.dataset.category.toLowerCase())}`
+        endpoint += `&category=${encodeURIComponent(activeCategory.dataset.category.toLowerCase())}`;
       }
     }
 
@@ -628,98 +638,102 @@ async function searchContent(query, silent = false) {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-    })
+    });
 
-    if (!response.ok) {
-      throw new Error("Search failed")
+    if (response.status === 401) {
+      console.warn("Unauthorized, redirecting to login");
+      localStorage.removeItem("auth_token");
+      window.location.href = "/";
+      return;
     }
 
-    const results = await response.json()
-    const resultsArray = tabName === "people" ? results.users : results.posts
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || "Search failed");
+    }
 
-    contentContainer.innerHTML = ""
+    const results = await response.json();
+    const resultsArray = tabName === "people" ? results.users : results.posts;
 
-    if (resultsArray.length === 0) {
+    contentContainer.innerHTML = "";
+
+    if (!resultsArray || resultsArray.length === 0) {
       contentContainer.innerHTML = `
-                <div class="no-results">
-                    <p>No results found for "${query}".</p>
-                </div>
-            `
-      return
+        <div class="no-results">
+          <p>No results found for "${query}".</p>
+        </div>
+      `;
+      return;
     }
 
     if (tabName === "people") {
       resultsArray.forEach((user) => {
-        const userCard = createUserCardElement(user)
-        contentContainer.appendChild(userCard)
-      })
-      setupFollowButtons()
+        const userCard = createUserCardElement(user, query); // Truyền query
+        contentContainer.appendChild(userCard);
+      });
+      setupFollowButtons();
     } else {
       resultsArray.forEach((post) => {
-        const postElement = createPostElement(post)
-        contentContainer.appendChild(postElement)
-      })
-      setupPostInteractions()
+        const postElement = createPostElement(post);
+        contentContainer.appendChild(postElement);
+      });
+      setupPostInteractions();
     }
   } catch (error) {
-    console.error("Error searching content:", error)
-    if (!silent) {
+    console.error("Error searching content:", error);
+    const contentContainer = document.getElementById(`${document.querySelector(".explore-tab.active")?.dataset.tab || "trending"}-posts`) || document.getElementById("suggested-people");
+    if (contentContainer && !silent) {
       contentContainer.innerHTML = `
-                <div class="error-message">
-                    <p>Search failed. Please try again later.</p>
-                </div>
-            `
+        <div class="error-message">
+          <p>${error.message || "Search failed. Please try again later."}</p>
+        </div>
+      `;
     }
   }
 }
-// Create user card element
-function createUserCardElement(user) {
-  // Clone the user card template
-  const template = document.getElementById("user-card-template")
-  const userCard = document.importNode(template.content, true).querySelector(".user-card")
+// Thêm hàm highlightQuery (nếu chưa có)
+function highlightQuery(text, query) {
+  if (!query) return text;
+  const regex = new RegExp(`(${query})`, 'gi');
+  return text.replace(regex, '<span class="highlight">$1</span>');
+}
 
-  // Set user ID
-  userCard.dataset.userId = user._id
+// Cập nhật createUserCardElement để nhận query
+function createUserCardElement(user, query = "") {
+  const template = document.getElementById("user-card-template");
+  const userCard = document.importNode(template.content, true).querySelector(".user-card");
 
-  // Set user avatar
-  const userAvatar = userCard.querySelector(".user-avatar img")
-  userAvatar.src = user.avatar || "/static/uploads/default-avatar-1.jpg"
-  userAvatar.alt = user.fullname || user.username
+  userCard.dataset.userId = user._id;
 
-  // Set user info
-  const userName = userCard.querySelector(".user-name")
-  userName.textContent = user.fullname || user.username
+  const userAvatar = userCard.querySelector(".user-avatar img");
+  userAvatar.src = user.profile_picture || "/static/uploads/default-avatar-1.jpg";
+  userAvatar.alt = user.fullname || user.username;
 
-  const userUsername = userCard.querySelector(".user-username")
-  userUsername.textContent = `@${user.username}`
+  const userName = userCard.querySelector(".user-name");
+  userName.innerHTML = query ? highlightQuery(user.fullname || user.username, query) : (user.fullname || user.username);
 
-  const userBio = userCard.querySelector(".user-bio")
-  userBio.textContent = user.bio || "No bio available"
+  const userUsername = userCard.querySelector(".user-username");
+  userUsername.innerHTML = query ? highlightQuery(`@${user.username}`, query) : `@${user.username}`;
 
-  // Set user stats
-  const postsCount = userCard.querySelector(".posts-count")
-  postsCount.textContent = user.posts_count || 0
+  const userBio = userCard.querySelector(".user-bio");
+  userBio.textContent = user.bio || "No bio available";
 
-  const followersCount = userCard.querySelector(".followers-count")
-  followersCount.textContent = user.followers_count || 0
-
-  // Set follow button
-  const followBtn = userCard.querySelector(".follow-btn")
-  followBtn.dataset.userId = user._id
-
+  const followBtn = userCard.querySelector(".follow-btn");
+  followBtn.dataset.userId = user._id;
   if (user.isFollowing) {
-    followBtn.classList.add("following")
-    followBtn.textContent = "Following"
+    followBtn.classList.add("following");
+    followBtn.textContent = "Following";
   } else {
-    followBtn.textContent = "Follow"
+    followBtn.textContent = "Follow";
   }
 
-  // Set user profile link
-  const userLink = userCard.querySelector(".user-link")
-  userLink.href = `/profile/${user._id}`
+  const userLink = userCard.querySelector(".user-link");
+  userLink.href = `/profile/${user._id}`;
 
-  return userCard
+  return userCard;
 }
+// Create user card element
+
 
 // Import functions from dashboard.js
 // These functions are already defined in dashboard.js, so we're just referencing them here
@@ -727,22 +741,21 @@ function createUserCardElement(user) {
 
 async function loadSuggestedUsers() {
   try {
-    const token = localStorage.getItem("auth_token")
+    const token = localStorage.getItem("auth_token");
     if (!token) {
       console.warn("No auth token, skipping loadSuggestedUsers");
       return;
     }
-    const suggestedUsersContainer = document.getElementById("suggested-users")
+    const suggestedUsersContainer = document.getElementById("suggested-users");
 
-    if (!suggestedUsersContainer) return
+    if (!suggestedUsersContainer) return;
 
-    // Show loading spinner
     suggestedUsersContainer.innerHTML = `
           <div class="loading-spinner">
             <i class="fas fa-spinner fa-spin"></i>
             <span>Loading suggested users...</span>
           </div>
-        `
+        `;
 
     const response = await fetch("/api/users/discover", {
       method: "GET",
@@ -750,44 +763,41 @@ async function loadSuggestedUsers() {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-    })
+    });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch suggested users")
+      throw new Error("Failed to fetch suggested users");
     }
 
-    const users = await response.json()
+    const users = await response.json();
 
-    // Clear loading spinner
-    suggestedUsersContainer.innerHTML = ""
+    suggestedUsersContainer.innerHTML = "";
 
     if (users.length === 0) {
       suggestedUsersContainer.innerHTML = `
             <div class="no-users">
               <p>No suggested users found.</p>
             </div>
-          `
-      return
+          `;
+      return;
     }
 
-    // Render user cards
     users.forEach((user) => {
-      const userCard = createUserCardElement(user)
-      suggestedUsersContainer.appendChild(userCard)
-    })
+      const userCard = createUserCardElement(user); // Không truyền query
+      suggestedUsersContainer.appendChild(userCard);
+    });
 
-    // Setup follow buttons
-    setupFollowButtons()
+    setupFollowButtons();
   } catch (error) {
-    console.error("Error loading suggested users:", error)
-    const suggestedUsersContainer = document.getElementById("suggested-users")
+    console.error("Error loading suggested users:", error);
+    const suggestedUsersContainer = document.getElementById("suggested-users");
 
     if (suggestedUsersContainer) {
       suggestedUsersContainer.innerHTML = `
             <div class="error-message">
               <p>Failed to load suggested users. Please try again later.</p>
             </div>
-          `
+          `;
     }
   }
 }
@@ -1350,3 +1360,10 @@ function fixNavigation() {
 
 // Call this function when the page loads
 document.addEventListener("DOMContentLoaded", fixNavigation)
+// Thêm hàm highlightQuery
+function highlightQuery(text, query) {
+  if (!query) return text;
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
+  return text.replace(regex, '<span class="highlight">$1</span>');
+}
+
