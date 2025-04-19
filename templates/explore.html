@@ -65,10 +65,10 @@
                 <ul class="following-list">
                     <!-- Following list will be loaded dynamically -->
                 </ul>
-                <a href="#" class="see-all-link">See all</a>
+                <!-- <a href="#" class="see-all-link">See all</a> -->
             </div>
             
-            <div class="user-profile" id="user-profile-menu">
+            <!-- <div class="user-profile" id="user-profile-menu">
                 <div class="user-avatar">
                     <img src="{{ url_for('static', filename='uploads/default-avatar-1.jpg') }}" alt="User Avatar" id="current-user-avatar">
                 </div>
@@ -80,16 +80,15 @@
                     <i class="fas fa-ellipsis-h"></i>
                 </button>
                 
-                <!-- User dropdown menu -->
                 <div class="user-dropdown" id="user-dropdown">
                     <ul>
                         <li><a href="{{url_for('profile') }}"><i class="fas fa-user"></i> View Profile</a></li>
-                        <!-- <li><a href="#"><i class="fas fa-cog"></i> Settings</a></li> -->
+                        
                         <li><a href="#" id="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</a></li>
                         <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
                     </ul>
                 </div>
-            </div>
+            </div> -->
         </aside>
 
         <!-- Main Content -->
@@ -239,7 +238,7 @@
         <div class="user-card" data-user-id="">
             <div class="user-card-header">
                 <div class="user-avatar medium">
-                    <img src="/placeholder.svg" alt="">
+                    <img src="{{ url_for('static', filename='uploads/default-avatar.png') }}" alt="">
                 </div>
                 <button class="follow-btn" data-user-id="">Follow</button>
             </div>

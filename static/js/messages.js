@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Functions
     function init() {
         // Load current user
+        applyTheme();
         loadCurrentUser();
         
         // Load conversations
@@ -41,7 +42,14 @@ document.addEventListener('DOMContentLoaded', function() {
         // Setup event listeners
         setupEventListeners();
     }
-
+    function applyTheme() {
+        const isDarkMode = localStorage.getItem("dark_mode") === "true"
+        if (isDarkMode) {
+            document.body.classList.add("dark-mode")
+        } else {
+            document.body.classList.remove("dark-mode")
+        }
+    }
     function loadConversations() {
         conversationsList.innerHTML = `
             <div class="loading">

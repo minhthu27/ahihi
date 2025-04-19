@@ -30,11 +30,10 @@ document.addEventListener("DOMContentLoaded", () => {
     // Setup delete account modal
     setupDeleteAccountModal()
   
-    // Setup user dropdown menu
-    setupUserDropdown()
+    setupLogoutButton()
   
     // Setup theme toggle
-    setupThemeToggle()
+    // setupThemeToggle()
   
     // Setup message closing
     setupMessageClosing()
@@ -42,7 +41,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Setup profile navigation links
     setupProfileNavigation()
 
-    setupFormSubmissions();
+    // setupFormSubmissions();
     setupPrivacyForm(); 
   }
   function setupProfileNavigation() {
@@ -318,13 +317,14 @@ document.addEventListener("DOMContentLoaded", () => {
           }
   
           // Set theme
-          const theme = settingsData.theme || "light"
+          const theme = settingsData.theme || (localStorage.getItem("dark_mode") === "true" ? "dark" : "light")
           document.querySelector(`input[name="theme"][value="${theme}"]`).checked = true
-  
-          // Apply theme if it's dark
           if (theme === "dark") {
-            document.body.classList.add("dark-mode")
+              document.body.classList.add("dark-mode")
+          } else {
+              document.body.classList.remove("dark-mode")
           }
+          localStorage.setItem("dark_mode", theme === "dark")
   
           // Remove loading state
           document.querySelectorAll(".settings-section").forEach((section) => {
@@ -694,77 +694,64 @@ document.addEventListener("DOMContentLoaded", () => {
   
     // Theme form
     const themeForm = document.getElementById("theme-form")
-    if (themeForm) {
-      themeForm.addEventListener("submit", async (e) => {
-        e.preventDefault()
-  
-        try {
-          const token = localStorage.getItem("auth_token")
-          const theme = document.querySelector('input[name="theme"]:checked').value
-  
-          // Show loading state
-          const submitBtn = themeForm.querySelector(".save-btn")
-          const originalBtnText = submitBtn.textContent
-          submitBtn.disabled = true
-          submitBtn.textContent = "Saving..."
-  
-          const response = await fetch("/api/settings/theme", {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ theme }),
-          })
-  
-          const result = await response.json()
-  
-          if (!response.ok) {
-            throw new Error(result.error || "Failed to update theme")
-          }
-  
-          // Apply theme
-          if (theme === "dark") {
-            document.body.classList.add("dark-mode")
-          } else {
-            document.body.classList.remove("dark-mode")
-          }
-  
-          // Save theme preference to localStorage
-          localStorage.setItem("dark_mode", theme === "dark")
-  
-          // Update theme toggle in user dropdown
-          const themeToggle = document.getElementById("theme-toggle")
-          if (themeToggle) {
+if (themeForm) {
+    // Apply theme immediately when radio buttons change
+    const themeOptions = document.querySelectorAll('input[name="theme"]')
+    themeOptions.forEach(option => {
+        option.addEventListener('change', function() {
+            const theme = this.value
             if (theme === "dark") {
-              themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light Mode'
+                document.body.classList.add("dark-mode")
             } else {
-              themeToggle.innerHTML = '<i class="fas fa-moon"></i> Dark Mode'
+                document.body.classList.remove("dark-mode")
             }
-          }
-  
-          // Reset button
-          submitBtn.disabled = false
-          submitBtn.textContent = originalBtnText
-  
-          // Show success message
-          showSuccess("Theme updated successfully!")
-  
-          // Update current user data in localStorage
-          const currentUser = JSON.parse(localStorage.getItem("current_user") || "{}")
-          currentUser.theme = theme
-          localStorage.setItem("current_user", JSON.stringify(currentUser))
+            localStorage.setItem("dark_mode", theme === "dark")
+        })
+    })
+    // Handle form submission to save theme to server
+    themeForm.addEventListener("submit", async (e) => {
+        e.preventDefault()
+        try {
+            const token = localStorage.getItem("auth_token")
+            const theme = document.querySelector('input[name="theme"]:checked').value
+            const submitBtn = themeForm.querySelector(".save-btn")
+            const originalBtnText = submitBtn.textContent
+            submitBtn.disabled = true
+            submitBtn.textContent = "Saving..."
+            const response = await fetch("/api/settings/theme", {
+                method: "PUT",
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ theme }),
+            })
+            const result = await response.json()
+            if (!response.ok) {
+                throw new Error(result.error || "Failed to update theme")
+            }
+            // Apply theme (redundant since radio buttons handle it, but kept for consistency)
+            if (theme === "dark") {
+                document.body.classList.add("dark-mode")
+            } else {
+                document.body.classList.remove("dark-mode")
+            }
+            localStorage.setItem("dark_mode", theme === "dark")
+            submitBtn.disabled = false
+            submitBtn.textContent = originalBtnText
+            showSuccess("Theme updated successfully!")
+            const currentUser = JSON.parse(localStorage.getItem("current_user") || "{}")
+            currentUser.theme = theme
+            localStorage.setItem("current_user", JSON.stringify(currentUser))
         } catch (error) {
-          console.error("Error updating theme:", error)
-          showError(error.message || "Failed to update theme. Please try again.")
-  
-          // Reset button
-          const submitBtn = themeForm.querySelector(".save-btn")
-          submitBtn.disabled = false
-          submitBtn.textContent = "Save Theme"
+            console.error("Error updating theme:", error)
+            showError(error.message || "Failed to update theme. Please try again.")
+            const submitBtn = themeForm.querySelector(".save-btn")
+            submitBtn.disabled = false
+            submitBtn.textContent = "Save Theme"
         }
-      })
-    }
+    })
+}
   }
   
   
@@ -1103,66 +1090,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
   
-  // Setup user dropdown menu
-  function setupUserDropdown() {
-    const userProfileMenu = document.getElementById("user-profile-menu")
-    const userMenuToggle = document.getElementById("user-menu-toggle")
-    const userDropdown = document.getElementById("user-dropdown")
   
-    if (userMenuToggle && userDropdown) {
-      userMenuToggle.addEventListener("click", (e) => {
-        e.stopPropagation()
-        userDropdown.classList.toggle("active")
-      })
-  
-      // Close dropdown when clicking outside
-      document.addEventListener("click", (e) => {
-        if (!userProfileMenu.contains(e.target)) {
-          userDropdown.classList.remove("active")
-        }
-      })
-    }
-  
-    // Setup theme toggle
-    const themeToggle = document.getElementById("theme-toggle")
-    if (themeToggle) {
-      themeToggle.addEventListener("click", toggleTheme)
-    }
-  
-    // Setup logout button
-    const logoutBtn = document.getElementById("logout-btn")
-    if (logoutBtn) {
-      logoutBtn.addEventListener("click", handleLogout)
-    }
-  }
-  
-  // Toggle theme
-  function toggleTheme(e) {
-    e.preventDefault()
-  
-    document.body.classList.toggle("dark-mode")
-    const isDark = document.body.classList.contains("dark-mode")
-  
-    // Update toggle text
-    if (isDark) {
-      this.innerHTML = '<i class="fas fa-sun"></i> Light Mode'
-    } else {
-      this.innerHTML = '<i class="fas fa-moon"></i> Dark Mode'
-    }
-  
-    // Save preference
-    localStorage.setItem("dark_mode", isDark)
-  
-    // Update theme radio buttons
-    const themeRadios = document.querySelectorAll('input[name="theme"]')
-    if (themeRadios.length > 0) {
-      if (isDark) {
-        document.querySelector('input[name="theme"][value="dark"]').checked = true
-      } else {
-        document.querySelector('input[name="theme"][value="light"]').checked = true
-      }
-    }
-  }
   
   // Handle logout
   async function handleLogout(e) {
@@ -1205,97 +1133,101 @@ document.addEventListener("DOMContentLoaded", () => {
       button.addEventListener("click", function () {
         const message = this.parentNode
         message.classList.remove("active")
-      })
-    })
-  }
   
-  // Setup theme toggle
-  function setupThemeToggle() {
-    const themeForm = document.getElementById("theme-form");
-    if (themeForm) {
-      themeForm.addEventListener("submit", async (e) => {
-        e.preventDefault();
+        // Hide the message element after animation completes
+        setTimeout(() => {
+          message.style.display = "none"
+        }, 300)
+      })
+    })}
+  
+  // // Setup theme toggle
+  // function setupThemeToggle() {
+  //   const themeForm = document.getElementById("theme-form");
+  //   if (themeForm) {
+  //     themeForm.addEventListener("submit", async (e) => {
+  //       e.preventDefault();
         
-        try {
-          const token = localStorage.getItem("auth_token");
-          const theme = document.querySelector('input[name="theme"]:checked').value;
+  //       try {
+  //         const token = localStorage.getItem("auth_token");
+  //         const theme = document.querySelector('input[name="theme"]:checked').value;
           
-          // Show loading state
-          const submitBtn = themeForm.querySelector(".save-btn");
-          const originalBtnText = submitBtn.textContent;
-          submitBtn.disabled = true;
-          submitBtn.textContent = "Saving...";
+  //         // Show loading state
+  //         const submitBtn = themeForm.querySelector(".save-btn");
+  //         const originalBtnText = submitBtn.textContent;
+  //         submitBtn.disabled = true;
+  //         submitBtn.textContent = "Saving...";
           
-          const response = await fetch("/api/settings/theme", {
-            method: "PUT",
-            headers: {
-              Authorization: `Bearer ${token}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ theme }),
-          });
+  //         const response = await fetch("/api/settings/theme", {
+  //           method: "PUT",
+  //           headers: {
+  //             Authorization: `Bearer ${token}`,
+  //             "Content-Type": "application/json",
+  //           },
+  //           body: JSON.stringify({ theme }),
+  //         });
           
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.error || "Failed to update theme");
-          }
+  //         if (!response.ok) {
+  //           const errorData = await response.json();
+  //           throw new Error(errorData.error || "Failed to update theme");
+  //         }
           
-          // Apply theme
-          if (theme === "dark") {
-            document.body.classList.add("dark-mode");
-          } else {
-            document.body.classList.remove("dark-mode");
-          }
+  //         // Apply theme
+  //         if (theme === "dark") {
+  //           document.body.classList.add("dark-mode");
+  //         } else {
+  //           document.body.classList.remove("dark-mode");
+  //         }
           
-          // Save theme preference to localStorage
-          localStorage.setItem("dark_mode", theme === "dark");
+  //         // Save theme preference to localStorage
+  //         localStorage.setItem("dark_mode", theme === "dark");
           
-          // Update theme toggle in user dropdown
-          const themeToggle = document.getElementById("theme-toggle");
-          if (themeToggle) {
-            if (theme === "dark") {
-              themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
-            } else {
-              themeToggle.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
-            }
-          }
+  //         // Update theme toggle in user dropdown
+  //         const themeToggle = document.getElementById("theme-toggle");
+  //         if (themeToggle) {
+  //           if (theme === "dark") {
+  //             themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light Mode';
+  //           } else {
+  //             themeToggle.innerHTML = '<i class="fas fa-moon"></i> Dark Mode';
+  //           }
+  //         }
           
-          // Reset button
-          submitBtn.disabled = false;
-          submitBtn.textContent = originalBtnText;
+  //         // Reset button
+  //         submitBtn.disabled = false;
+  //         submitBtn.textContent = originalBtnText;
           
-          // Show success message
-          showSuccess("Theme updated successfully!");
+  //         // Show success message
+  //         showSuccess("Theme updated successfully!");
           
-          // Update current user data in localStorage
-          const currentUser = JSON.parse(localStorage.getItem("current_user") || "{}");
-          currentUser.theme = theme;
-          localStorage.setItem("current_user", JSON.stringify(currentUser));
-        } catch (error) {
-          console.error("Error updating theme:", error);
-          showError(error.message || "Failed to update theme. Please try again.");
+  //         // Update current user data in localStorage
+  //         const currentUser = JSON.parse(localStorage.getItem("current_user") || "{}");
+  //         currentUser.theme = theme;
+  //         localStorage.setItem("current_user", JSON.stringify(currentUser));
+  //       } catch (error) {
+  //         console.error("Error updating theme:", error);
+  //         showError(error.message || "Failed to update theme. Please try again.");
           
-          // Reset button
-          const submitBtn = themeForm.querySelector(".save-btn");
-          submitBtn.disabled = false;
-          submitBtn.textContent = "Save Theme";
-        }
-      });
-    }
+  //         // Reset button
+  //         const submitBtn = themeForm.querySelector(".save-btn");
+  //         submitBtn.disabled = false;
+  //         submitBtn.textContent = "Save Theme";
+  //       }
+  //     });
+  //   }
     
-    // Add direct theme toggle functionality
-    const themeOptions = document.querySelectorAll('input[name="theme"]');
-    themeOptions.forEach(option => {
-      option.addEventListener('change', function() {
-        // Apply theme immediately when option is selected
-        if (this.value === "dark") {
-          document.body.classList.add("dark-mode");
-        } else {
-          document.body.classList.remove("dark-mode");
-        }
-      });
-    });
-  }
+  //   // Add direct theme toggle functionality
+  //   const themeOptions = document.querySelectorAll('input[name="theme"]');
+  //   themeOptions.forEach(option => {
+  //     option.addEventListener('change', function() {
+  //       // Apply theme immediately when option is selected
+  //       if (this.value === "dark") {
+  //         document.body.classList.add("dark-mode");
+  //       } else {
+  //         document.body.classList.remove("dark-mode");
+  //       }
+  //     });
+  //   });
+  // }
   
   // Show error message
   function showError(message) {
@@ -1303,7 +1235,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const errorText = document.getElementById("error-text")
   
     if (errorMessage && errorText) {
-      // Nếu đang hiển thị thông báo, xóa trước khi hiển thị thông báo mới
+      // Make sure the message is visible
+      errorMessage.style.display = "block"
+  
+      // If already showing a message, remove it before showing the new one
       if (errorMessage.classList.contains("active")) {
         errorMessage.classList.remove("active")
         setTimeout(() => {
@@ -1318,6 +1253,10 @@ document.addEventListener("DOMContentLoaded", () => {
       // Auto hide after 5 seconds
       setTimeout(() => {
         errorMessage.classList.remove("active")
+        // Hide the element after animation completes
+        setTimeout(() => {
+          errorMessage.style.display = "none"
+        }, 300)
       }, 5000)
     } else {
       // Create a floating message if the error container doesn't exist
@@ -1355,7 +1294,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const successText = document.getElementById("success-text")
   
     if (successMessage && successText) {
-      // Nếu đang hiển thị thông báo, xóa trước khi hiển thị thông báo mới
+      // Make sure the message is visible
+      successMessage.style.display = "block"
+  
+      // If already showing a message, remove it before showing the new one
       if (successMessage.classList.contains("active")) {
         successMessage.classList.remove("active")
         setTimeout(() => {
@@ -1370,6 +1312,10 @@ document.addEventListener("DOMContentLoaded", () => {
       // Auto hide after 5 seconds
       setTimeout(() => {
         successMessage.classList.remove("active")
+        // Hide the element after animation completes
+        setTimeout(() => {
+          successMessage.style.display = "none"
+        }, 300)
       }, 5000)
     } else {
       // Create a floating message if the success container doesn't exist
@@ -1535,3 +1481,10 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
   }
+  // Setup logout button in settings
+function setupLogoutButton() {
+  const logoutBtn = document.getElementById("logout-settings-btn")
+  if (logoutBtn) {
+      logoutBtn.addEventListener("click", handleLogout)
+  }
+}

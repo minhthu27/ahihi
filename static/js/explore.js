@@ -55,6 +55,7 @@ function initializeExplorePage() {
     return
   }
   // Setup tab switching
+  applyTheme()
   setupTabs()
 
   // Setup category filtering
@@ -1367,3 +1368,11 @@ function highlightQuery(text, query) {
   return text.replace(regex, '<span class="highlight">$1</span>');
 }
 
+function applyTheme() {
+  const isDarkMode = localStorage.getItem("dark_mode") === "true"
+  if (isDarkMode) {
+      document.body.classList.add("dark-mode")
+  } else {
+      document.body.classList.remove("dark-mode")
+  }
+}

@@ -57,6 +57,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // Initialize dashboard components
 function initializeDashboard() {
   // Fetch current user data
+  applyTheme()
   fetchCurrentUser()
 
   // Load posts
@@ -66,13 +67,13 @@ function initializeDashboard() {
   loadSuggestedUsers()
 
   // Setup user dropdown menu
-  setupUserDropdown()
+  // setupUserDropdown()
 
   // Setup post creation
   setupPostCreation()
 
   // Setup theme toggle
-  setupThemeToggle()
+  // setupThemeToggle()
 
   // Setup message closing
   setupMessageClosing()
@@ -1625,88 +1626,88 @@ async function deletePost(postId, postElement) {
 }
 
 // Setup user dropdown menu
-function setupUserDropdown() {
-  const userProfileMenu = document.getElementById("user-profile-menu")
-  const userMenuToggle = document.getElementById("user-menu-toggle")
-  const userDropdown = document.getElementById("user-dropdown")
+// function setupUserDropdown() {
+//   const userProfileMenu = document.getElementById("user-profile-menu")
+//   const userMenuToggle = document.getElementById("user-menu-toggle")
+//   const userDropdown = document.getElementById("user-dropdown")
 
-  if (userMenuToggle && userDropdown) {
-    userMenuToggle.addEventListener("click", (e) => {
-      e.stopPropagation()
-      userDropdown.classList.toggle("active")
-    })
+//   if (userMenuToggle && userDropdown) {
+//     userMenuToggle.addEventListener("click", (e) => {
+//       e.stopPropagation()
+//       userDropdown.classList.toggle("active")
+//     })
 
-    // Close dropdown when clicking outside
-    document.addEventListener("click", (e) => {
-      if (!userProfileMenu.contains(e.target)) {
-        userDropdown.classList.remove("active")
-      }
-    })
-  }
+//     // Close dropdown when clicking outside
+//     document.addEventListener("click", (e) => {
+//       if (!userProfileMenu.contains(e.target)) {
+//         userDropdown.classList.remove("active")
+//       }
+//     })
+//   }
 
-  // Setup theme toggle
-  const themeToggle = document.getElementById("theme-toggle")
-  if (themeToggle) {
-    themeToggle.addEventListener("click", toggleTheme)
-  }
+//   // Setup theme toggle
+//   const themeToggle = document.getElementById("theme-toggle")
+//   if (themeToggle) {
+//     themeToggle.addEventListener("click", toggleTheme)
+//   }
 
-  // Setup logout button
-  const logoutBtn = document.getElementById("logout-btn")
-  if (logoutBtn) {
-    logoutBtn.addEventListener("click", handleLogout)
-  }
-}
+//   // Setup logout button
+//   const logoutBtn = document.getElementById("logout-btn")
+//   if (logoutBtn) {
+//     logoutBtn.addEventListener("click", handleLogout)
+//   }
+// }
 
 // Toggle theme
-function toggleTheme(e) {
-  e.preventDefault()
+// function toggleTheme(e) {
+//   e.preventDefault()
 
-  document.body.classList.toggle("dark-mode")
-  const isDark = document.body.classList.contains("dark-mode")
+//   document.body.classList.toggle("dark-mode")
+//   const isDark = document.body.classList.contains("dark-mode")
 
-  // Update toggle text
-  if (isDark) {
-    this.innerHTML = '<i class="fas fa-sun"></i> Light Mode'
-  } else {
-    this.innerHTML = '<i class="fas fa-moon"></i> Dark Mode'
-  }
+//   // Update toggle text
+//   if (isDark) {
+//     this.innerHTML = '<i class="fas fa-sun"></i> Light Mode'
+//   } else {
+//     this.innerHTML = '<i class="fas fa-moon"></i> Dark Mode'
+//   }
 
-  // Save preference
-  localStorage.setItem("dark_mode", isDark)
-}
+//   // Save preference
+//   localStorage.setItem("dark_mode", isDark)
+// }
 
 // Handle logout
-async function handleLogout(e) {
-  e.preventDefault()
+// async function handleLogout(e) {
+//   e.preventDefault()
 
-  try {
-    const token = localStorage.getItem("auth_token")
+//   try {
+//     const token = localStorage.getItem("auth_token")
 
-    await fetch("/api/auth/logout", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
+//     await fetch("/api/auth/logout", {
+//       method: "POST",
+//       headers: {
+//         Authorization: `Bearer ${token}`,
+//         "Content-Type": "application/json",
+//       },
+//     })
 
-    // Clear local storage
-    localStorage.removeItem("auth_token")
-    localStorage.removeItem("current_user")
-    localStorage.removeItem("profile_user")
+//     // Clear local storage
+//     localStorage.removeItem("auth_token")
+//     localStorage.removeItem("current_user")
+//     localStorage.removeItem("profile_user")
 
-    // Redirect to index page
-    window.location.href = "/"
-  } catch (error) {
-    console.error("Error during logout:", error)
+//     // Redirect to index page
+//     window.location.href = "/"
+//   } catch (error) {
+//     console.error("Error during logout:", error)
 
-    // Still clear local storage and redirect on error
-    localStorage.removeItem("auth_token")
-    localStorage.removeItem("current_user")
-    localStorage.removeItem("profile_user")
-    window.location.href = "/"
-  }
-}
+//     // Still clear local storage and redirect on error
+//     localStorage.removeItem("auth_token")
+//     localStorage.removeItem("current_user")
+//     localStorage.removeItem("profile_user")
+//     window.location.href = "/"
+//   }
+// }
 
 // Setup message closing
 function setupMessageClosing() {
@@ -1721,20 +1722,20 @@ function setupMessageClosing() {
 }
 
 // Setup theme toggle
-function setupThemeToggle() {
-  const themeToggle = document.getElementById("theme-toggle")
+// function setupThemeToggle() {
+//   const themeToggle = document.getElementById("theme-toggle")
 
-  // Check if dark mode is enabled
-  const isDarkMode = localStorage.getItem("dark_mode") === "true"
+//   // Check if dark mode is enabled
+//   const isDarkMode = localStorage.getItem("dark_mode") === "true"
 
-  // Apply dark mode if enabled
-  if (isDarkMode) {
-    document.body.classList.add("dark-mode")
-    if (themeToggle) {
-      themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light Mode'
-    }
-  }
-}
+//   // Apply dark mode if enabled
+//   if (isDarkMode) {
+//     document.body.classList.add("dark-mode")
+//     if (themeToggle) {
+//       themeToggle.innerHTML = '<i class="fas fa-sun"></i> Light Mode'
+//     }
+//   }
+// }
 
 // Format time ago
 function formatTimeAgo(date) {
@@ -2701,10 +2702,16 @@ async function toggleReplyLike(replyId, button) {
 }
 async function loadTrendingTopics() {
   try {
-    const token = localStorage.getItem("auth_token")
+    const token = localStorage.getItem("auth_token");
     if (!token) {
-      console.error("No auth token found")
-      return
+      console.error("No auth token found");
+      return;
+    }
+
+    const trendingSection = document.getElementById("trending-topics");
+    if (!trendingSection) {
+      console.log("Trending topics section not found on this page.");
+      return; // Exit if the element doesn't exist
     }
 
     const response = await fetch("/api/posts/trending-topics", {
@@ -2713,31 +2720,30 @@ async function loadTrendingTopics() {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-    })
+    });
 
     if (!response.ok) {
-      throw new Error("Failed to fetch trending topics")
+      throw new Error("Failed to fetch trending topics");
     }
 
-    const topics = await response.json()
-    const trendingSection = document.getElementById("trending-topics")
-    trendingSection.innerHTML = "" // Xóa nội dung hiện tại
+    const topics = await response.json();
+    trendingSection.innerHTML = ""; // Now safe to set innerHTML
 
     topics.forEach((topic) => {
-      const formattedCount = formatNumber(topic.post_count) // Định dạng số bài viết
-      const topicElement = document.createElement("div")
-      topicElement.classList.add("trending-topic")
+      const formattedCount = formatNumber(topic.post_count);
+      const topicElement = document.createElement("div");
+      topicElement.classList.add("trending-topic");
       topicElement.innerHTML = `
-              <a href="/explore?category=${topic.category.toLowerCase()}&q=${topic.hashtag}" class="topic-link">
-                  <p class="topic-category">${topic.category}</p>
-                  <h4>${topic.hashtag}</h4>
-                  <p>${formattedCount} posts</p>
-              </a>
-          `
-      trendingSection.appendChild(topicElement)
-    })
+        <a href="/explore?category=${topic.category.toLowerCase()}&q=${topic.hashtag}" class="topic-link">
+            <p class="topic-category">${topic.category}</p>
+            <h4>${topic.hashtag}</h4>
+            <p>${formattedCount} posts</p>
+        </a>
+      `;
+      trendingSection.appendChild(topicElement);
+    });
   } catch (error) {
-    console.error("Error loading trending topics:", error)
+    console.error("Error loading trending topics:", error);
   }
 }
 
@@ -2809,4 +2815,13 @@ function loadDashboardSettings() {
 function saveDashboardSettings() {
   // Implement your logic here to save dashboard settings
   console.log("Saving dashboard settings...")
+}
+// Apply theme from localStorage
+function applyTheme() {
+  const isDarkMode = localStorage.getItem("dark_mode") === "true"
+  if (isDarkMode) {
+      document.body.classList.add("dark-mode")
+  } else {
+      document.body.classList.remove("dark-mode")
+  }
 }

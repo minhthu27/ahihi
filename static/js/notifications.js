@@ -13,6 +13,7 @@ document.addEventListener("DOMContentLoaded", () => {
 // Initialize notifications
 function initializeNotifications() {
   // Fetch current user data
+  applyTheme()
   fetchCurrentUser()
 
   // Load notifications
@@ -869,5 +870,13 @@ function showSuccess(message) {
         messageBox.remove()
       }, 300)
     })
+  }
+}
+function applyTheme() {
+  const isDarkMode = localStorage.getItem("dark_mode") === "true"
+  if (isDarkMode) {
+      document.body.classList.add("dark-mode")
+  } else {
+      document.body.classList.remove("dark-mode")
   }
 }

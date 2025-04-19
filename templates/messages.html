@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Message Window</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <!-- Removed dashboard.css dependency -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/messages.css') }}">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 </head>
@@ -38,7 +38,7 @@
                             <span class="notification-badge" id="notification-badge"></span>
                         </a>
                     </li>
-                    <li>
+                    <li class="active">
                         <a href="{{ url_for('messages') }}">
                             <i class="fas fa-envelope"></i>
                             <span>Messages</span>
@@ -50,7 +50,7 @@
                             <span>Profile</span>
                         </a>
                     </li>
-                    <li class="active">
+                    <li>
                         <a href="{{ url_for('settings') }}">
                             <i class="fas fa-cog"></i>
                             <span>Settings</span>
@@ -67,94 +67,71 @@
                         <i class="fas fa-spinner fa-spin"></i>
                     </div>
                 </ul>
-                <a href="#" class="see-all-link">See all</a>
+                <!-- <a href="#" class="see-all-link">See all</a> -->
             </div>
             
-            <div class="user-profile" id="user-profile-menu">
-                <div class="user-avatar">
-                    <img src="{{ url_for('static', filename='uploads/default-avatar-1.jpg') }}" alt="User Avatar" id="current-user-avatar">
-                </div>
-                <div class="user-info">
-                    <h3 id="current-user-name">John Doe</h3>
-                    <p id="current-user-handle">@johndoe</p>
-                </div>
-                <button id="user-menu-toggle" class="menu-toggle">
-                    <i class="fas fa-ellipsis-h"></i>
-                </button>
-                
-                <!-- User dropdown menu -->
-                <div class="user-dropdown" id="user-dropdown">
-                    <ul>
-                        <li><a href="{{ url_for('profile') }}"><i class="fas fa-user"></i> View Profile</a></li>
-                        <!-- <li><a href="{{ url_for('settings') }}"><i class="fas fa-cog"></i> Settings</a></li> -->
-                        <li><a href="#" id="theme-toggle"><i class="fas fa-moon"></i> Dark Mode</a></li>
-                        <li><a href="#" id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</a></li>
-                    </ul>
-                </div>
-            </div>
+          
         </aside>
-    <div class="message-window">
-        <!-- Conversations Panel -->
-        <div class="conversations-panel" id="conversations-panel">
-            <div class="conversations-header">
-                <h2>Messages</h2>
-                <button id="new-conversation-btn" class="icon-button">
-                    <i class="fas fa-edit"></i>
-                </button>
-            </div>
-            <div class="search-container">
-                <input type="text" id="search-input" placeholder="Search messages">
-                <i class="fas fa-search"></i>
-            </div>
-            <div class="conversations-list" id="conversations-list">
-                <!-- Conversations will be loaded here -->
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p>Loading conversations...</p>
-                </div>
-            </div>
-        </div>
-
-        <!-- Messages Panel -->
-        <div class="messages-panel" id="messages-panel">
-            <!-- Empty state -->
-            <div class="empty-state" id="empty-state">
-                <div class="empty-state-icon">
-                    <i class="fas fa-comments"></i>
-                </div>
-                <h3>Your Messages</h3>
-                <p>Select a conversation or start a new one</p>
-                <button id="start-new-message-btn" class="primary-button">New Message</button>
-            </div>
-
-            <!-- Conversation view (hidden by default) -->
-            <div class="conversation-view" id="conversation-view" style="display: none;">
-                <div class="conversation-header" id="conversation-header">
-                    <!-- Will be populated dynamically -->
-                </div>
-                <div class="messages-container" id="messages-container">
-                    <!-- Messages will be loaded here -->
-                </div>
-                <div class="message-input-container">
-                    <div class="message-input-wrapper">
-                        <button class="attachment-button">
-                            <i class="fas fa-paperclip"></i>
-                        </button>
-                        <textarea id="message-input" placeholder="Type a message..."></textarea>
-                        <button class="emoji-button">
-                            <i class="far fa-smile"></i>
-                        </button>
-                    </div>
-                    <button id="send-button" class="send-button" disabled>
-                        <i class="fas fa-paper-plane"></i>
+        
+        <div class="message-window">
+            <!-- Conversations Panel -->
+            <div class="conversations-panel" id="conversations-panel">
+                <div class="conversations-header">
+                    <h2>Messages</h2>
+                    <button id="new-conversation-btn" class="icon-button">
+                        <i class="fas fa-edit"></i>
                     </button>
                 </div>
+                <div class="search-container">
+                    <input type="text" id="search-input" placeholder="Search messages">
+                    <i class="fas fa-search"></i>
+                </div>
+                <div class="conversations-list" id="conversations-list">
+                    <!-- Conversations will be loaded here -->
+                    <div class="loading">
+                        <div class="spinner"></div>
+                        <p>Loading conversations...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Messages Panel -->
+            <div class="messages-panel" id="messages-panel">
+                <!-- Empty state -->
+                <div class="empty-state" id="empty-state">
+                    <div class="empty-state-icon">
+                        <i class="fas fa-comments"></i>
+                    </div>
+                    <h3>Your Messages</h3>
+                    <p>Select a conversation or start a new one</p>
+                    <button id="start-new-message-btn" class="primary-button">New Message</button>
+                </div>
+
+                <!-- Conversation view (hidden by default) -->
+                <div class="conversation-view" id="conversation-view" style="display: none;">
+                    <div class="conversation-header" id="conversation-header">
+                        <!-- Will be populated dynamically -->
+                    </div>
+                    <div class="messages-container" id="messages-container">
+                        <!-- Messages will be loaded here -->
+                    </div>
+                    <div class="message-input-container">
+                        <div class="message-input-wrapper">
+                            <button class="attachment-button">
+                                <i class="fas fa-paperclip"></i>
+                            </button>
+                            <textarea id="message-input" placeholder="Type a message..."></textarea>
+                            <button class="emoji-button">
+                                <i class="far fa-smile"></i>
+                            </button>
+                        </div>
+                        <button id="send-button" class="send-button" disabled>
+                            <i class="fas fa-paper-plane"></i>
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
-        <a href="{{ url_for('dashboard') }}" class="dashboard-link">
-            <i class="fas fa-tachometer-alt"></i>
-            <span>Dashboard</span>
-        </a>
     </div>
 
     <!-- New Conversation Modal -->
@@ -181,7 +158,13 @@
             </div>
         </div>
     </div>
-   <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
+    
+    <a href="{{ url_for('dashboard') }}" class="dashboard-link">
+        <i class="fas fa-tachometer-alt"></i>
+        <span>Dashboard</span>
+    </a>
+    
+    <script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
     <script src="{{ url_for('static', filename='js/messages.js') }}"></script>
 </body>
 </html>

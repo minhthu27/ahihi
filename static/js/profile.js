@@ -1248,7 +1248,7 @@ async function initializeProfile(userId) {
       showError("Profile not found")
       return
     }
-
+    applyTheme()
     // Setup user dropdown menu
     setupUserDropdown()
 
@@ -3546,4 +3546,12 @@ function setupExternalCoverUpload() {
       }
     }
   });
+}
+function applyTheme() {
+  const isDarkMode = localStorage.getItem("dark_mode") === "true"
+  if (isDarkMode) {
+      document.body.classList.add("dark-mode")
+  } else {
+      document.body.classList.remove("dark-mode")
+  }
 }
