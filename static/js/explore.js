@@ -69,6 +69,7 @@ function initializeExplorePage() {
 
   // Load suggested users for the right sidebar
   loadSuggestedUsers()
+  loadFollowingList()
 
   // Setup user dropdown menu
   setupUserDropdown()
@@ -85,8 +86,9 @@ function initializeExplorePage() {
   // Fetch current user data
   fetchCurrentUser().then((user) => {
     if (user) {
-      // Update UI with user data if needed
       console.log("User data loaded:", user)
+      // Lưu thông tin người dùng hiện tại vào localStorage để sử dụng sau này
+      localStorage.setItem("current_user", JSON.stringify(user))
     }
   })
 
@@ -100,21 +102,513 @@ function initializeExplorePage() {
   if (category || query) {
     const tab = document.querySelector('.explore-tab[data-tab="trending"]')
     if (tab) {
-      tab.click() // Chuyển sang tab Trending
+      tab.click()
       if (category) {
         const categoryChip = document.querySelector(`.category-chip[data-category="${category}"]`)
         if (categoryChip) {
-          categoryChip.click() // Chọn category
+          categoryChip.click()
         }
       }
       if (query) {
         const searchInput = document.getElementById("explore-search-input")
         if (searchInput) {
           searchInput.value = query
-          searchContent(query) // Tìm kiếm với hashtag
+          searchContent(query)
         }
       }
     }
+  }
+
+  // Thiết lập các chức năng post actions
+  setupPostDropdowns()
+  setupEditPostAction()
+  setupDeletePostAction()
+  setupReportPostAction()
+}
+
+// Thiết lập dropdown menu cho các bài post
+function setupPostDropdowns() {
+  // Sử dụng event delegation để xử lý tất cả các post (bao gồm cả những post được thêm sau)
+  document.addEventListener("click", (e) => {
+    const menuToggle = e.target.closest(".post-menu-toggle")
+    if (menuToggle) {
+      e.stopPropagation()
+
+      // Đóng tất cả các dropdown khác
+      document.querySelectorAll(".post-dropdown.active").forEach((dropdown) => {
+        if (!dropdown.closest(".post").contains(menuToggle)) {
+          dropdown.classList.remove("active")
+        }
+      })
+
+      // Toggle dropdown hiện tại
+      const dropdown = menuToggle.closest(".post").querySelector(".post-dropdown")
+      if (dropdown) {
+        dropdown.classList.toggle("active")
+      }
+    } else if (!e.target.closest(".post-dropdown")) {
+      // Đóng tất cả dropdown khi click ra ngoài
+      document.querySelectorAll(".post-dropdown.active").forEach((dropdown) => {
+        dropdown.classList.remove("active")
+      })
+    }
+  })
+}
+
+// Thiết lập chức năng edit post
+function setupEditPostAction() {
+  document.addEventListener("click", (e) => {
+    const editOption = e.target.closest(".edit-post-option a")
+    if (editOption) {
+      e.preventDefault()
+      const post = editOption.closest(".post")
+      const postId = post.dataset.postId
+      const postText = post.querySelector(".post-text").textContent
+
+      // Đóng dropdown
+      const dropdown = post.querySelector(".post-dropdown")
+      if (dropdown) dropdown.classList.remove("active")
+
+      // Mở modal edit post
+      openEditPostModal(postId, postText, post)
+    }
+  })
+}
+
+// Mở modal edit post
+function openEditPostModal(postId, postText, postElement) {
+  // Tạo modal
+  const modal = document.createElement("div")
+  modal.className = "modal"
+  modal.id = "edit-post-modal"
+
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Edit Post</h2>
+        <button class="close-modal"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <textarea id="edit-post-content">${postText}</textarea>
+      </div>
+      <div class="modal-footer">
+        <button class="cancel-edit-btn">Cancel</button>
+        <button class="save-edit-btn">Save</button>
+      </div>
+    </div>
+  `
+
+  // Thêm modal vào body
+  document.body.appendChild(modal)
+
+  // Hiển thị modal
+  setTimeout(() => {
+    modal.classList.add("active")
+  }, 10)
+
+  // Thiết lập nút đóng modal
+  const closeBtn = modal.querySelector(".close-modal")
+  closeBtn.addEventListener("click", closeModal)
+
+  // Đóng modal khi click ra ngoài
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeModal()
+    }
+  })
+
+  // Thiết lập nút cancel
+  const cancelBtn = modal.querySelector(".cancel-edit-btn")
+  cancelBtn.addEventListener("click", closeModal)
+
+  // Thiết lập nút save
+  const saveBtn = modal.querySelector(".save-edit-btn")
+  const editTextarea = modal.querySelector("#edit-post-content")
+
+  saveBtn.addEventListener("click", async () => {
+    const newText = editTextarea.value.trim()
+
+    if (newText === "") {
+      showError("Post content cannot be empty.")
+      return
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token")
+
+      // Disable nút save
+      saveBtn.disabled = true
+      saveBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Saving...'
+
+      const response = await fetch(`/api/posts/${postId}/update`, {
+        method: "PUT",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          content: newText,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to update post")
+      }
+
+      // Cập nhật nội dung post trên UI
+      postElement.querySelector(".post-text").textContent = newText
+
+      // Đóng modal
+      closeModal()
+
+      // Hiển thị thông báo thành công
+      showSuccess("Post updated successfully!")
+    } catch (error) {
+      console.error("Error updating post:", error)
+      showError(error.message || "Failed to update post. Please try again.")
+
+      // Re-enable nút save
+      saveBtn.disabled = false
+      saveBtn.innerHTML = "Save"
+    }
+  })
+
+  function closeModal() {
+    modal.classList.remove("active")
+    setTimeout(() => {
+      modal.remove()
+    }, 300)
+  }
+}
+
+// Thiết lập chức năng delete post
+function setupDeletePostAction() {
+  document.addEventListener("click", (e) => {
+    const deleteOption = e.target.closest(".delete-post-option a")
+    if (deleteOption) {
+      e.preventDefault()
+      const post = deleteOption.closest(".post")
+      const postId = post.dataset.postId
+
+      // Đóng dropdown
+      const dropdown = post.querySelector(".post-dropdown")
+      if (dropdown) dropdown.classList.remove("active")
+
+      // Xác nhận xóa post
+      if (confirm("Are you sure you want to delete this post?")) {
+        deletePost(postId, post)
+      }
+    }
+  })
+}
+
+// Xóa post
+async function deletePost(postId, postElement) {
+  try {
+    const token = localStorage.getItem("auth_token")
+
+    // Hiển thị loading state
+    postElement.style.opacity = "0.5"
+
+    const response = await fetch(`/api/posts/${postId}/delete`, {
+      method: "DELETE",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || "Failed to delete post")
+    }
+
+    // Xóa post khỏi UI với animation
+    postElement.style.height = postElement.offsetHeight + "px"
+    postElement.style.overflow = "hidden"
+
+    setTimeout(() => {
+      postElement.style.height = "0"
+      postElement.style.padding = "0"
+      postElement.style.margin = "0"
+
+      setTimeout(() => {
+        postElement.remove()
+      }, 300)
+    }, 100)
+
+    // Hiển thị thông báo thành công
+    showSuccess("Post deleted successfully!")
+  } catch (error) {
+    console.error("Error deleting post:", error)
+
+    // Khôi phục trạng thái post
+    postElement.style.opacity = "1"
+
+    showError(error.message || "Failed to delete post. Please try again.")
+  }
+}
+
+// Thiết lập chức năng report post
+function setupReportPostAction() {
+  document.addEventListener("click", (e) => {
+    const reportOption = e.target.closest(".report-post-option a")
+    if (reportOption) {
+      e.preventDefault()
+      const post = reportOption.closest(".post")
+      const postId = post.dataset.postId
+
+      // Đóng dropdown
+      const dropdown = post.querySelector(".post-dropdown")
+      if (dropdown) dropdown.classList.remove("active")
+
+      // Mở modal report post
+      openReportPostModal(postId)
+    }
+  })
+}
+
+// Mở modal report post
+function openReportPostModal(postId) {
+  // Tạo modal
+  const modal = document.createElement("div")
+  modal.className = "modal"
+  modal.id = "report-post-modal"
+
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Report Post</h2>
+        <button class="close-modal"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Why are you reporting this post?</p>
+        <div class="report-options">
+          <div class="report-option">
+            <input type="radio" name="report-reason" id="report-spam" value="spam">
+            <label for="report-spam">It's spam</label>
+          </div>
+          <div class="report-option">
+            <input type="radio" name="report-reason" id="report-harmful" value="harmful">
+            <label for="report-harmful">It's harmful or abusive</label>
+          </div>
+          <div class="report-option">
+            <input type="radio" name="report-reason" id="report-misleading" value="misleading">
+            <label for="report-misleading">It contains misleading information</label>
+          </div>
+          <div class="report-option">
+            <input type="radio" name="report-reason" id="report-sensitive" value="sensitive">
+            <label for="report-sensitive">It contains sensitive content</label>
+          </div>
+          <div class="report-option">
+            <input type="radio" name="report-reason" id="report-other" value="other">
+            <label for="report-other">Other</label>
+          </div>
+          <div class="report-other-container" style="display: none;">
+            <textarea id="report-other-reason" placeholder="Please specify the reason"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="cancel-report-btn">Cancel</button>
+        <button class="submit-report-btn" disabled>Submit Report</button>
+      </div>
+    </div>
+  `
+
+  // Thêm modal vào body
+  document.body.appendChild(modal)
+
+  // Hiển thị modal
+  setTimeout(() => {
+    modal.classList.add("active")
+  }, 10)
+
+  // Thiết lập nút đóng modal
+  const closeBtn = modal.querySelector(".close-modal")
+  closeBtn.addEventListener("click", closeModal)
+
+  // Đóng modal khi click ra ngoài
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeModal()
+    }
+  })
+
+  // Thiết lập nút cancel
+  const cancelBtn = modal.querySelector(".cancel-report-btn")
+  cancelBtn.addEventListener("click", closeModal)
+
+  // Thiết lập các tùy chọn report
+  const reportOptions = modal.querySelectorAll('input[name="report-reason"]')
+  const otherReasonContainer = modal.querySelector(".report-other-container")
+  const otherReasonTextarea = modal.querySelector("#report-other-reason")
+  const submitReportBtn = modal.querySelector(".submit-report-btn")
+
+  reportOptions.forEach((option) => {
+    option.addEventListener("change", () => {
+      if (option.value === "other") {
+        otherReasonContainer.style.display = "block"
+        submitReportBtn.disabled = otherReasonTextarea.value.trim() === ""
+      } else {
+        otherReasonContainer.style.display = "none"
+        submitReportBtn.disabled = false
+      }
+    })
+  })
+
+  otherReasonTextarea.addEventListener("input", () => {
+    submitReportBtn.disabled = otherReasonTextarea.value.trim() === ""
+  })
+
+  // Thiết lập nút submit
+  submitReportBtn.addEventListener("click", async () => {
+    const selectedOption = modal.querySelector('input[name="report-reason"]:checked')
+
+    if (!selectedOption) {
+      showError("Please select a reason for reporting.")
+      return
+    }
+
+    const reason = selectedOption.value
+    let description = ""
+    if (reason === "other") {
+      description = otherReasonTextarea.value.trim()
+      if (description === "") {
+        showError("Please specify the reason for reporting.")
+        return
+      }
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token")
+      submitReportBtn.disabled = true
+      submitReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...'
+
+      const response = await fetch(`/api/posts/${postId}/report`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: reason,
+          description: description,
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Failed to submit report")
+      }
+
+      const result = await response.json()
+      showSuccess(result.message || "Thank you for your report. We'll review it shortly.")
+      closeModal()
+    } catch (error) {
+      console.error("Error submitting report:", error)
+      showError(error.message || "Failed to submit report. Please try again.")
+      submitReportBtn.disabled = false
+      submitReportBtn.innerHTML = "Submit Report"
+    }
+  })
+
+  function closeModal() {
+    modal.classList.remove("active")
+    setTimeout(() => {
+      modal.remove()
+    }, 300)
+  }
+}
+
+// Hiển thị thông báo lỗi
+function showError(message) {
+  // Kiểm tra xem đã có thông báo lỗi có sẵn chưa
+  const existingError = document.getElementById("error-message")
+
+  if (existingError) {
+    const errorText = document.getElementById("error-text")
+    errorText.textContent = message
+    existingError.classList.add("active")
+
+    // Tự động ẩn sau 5 giây
+    setTimeout(() => {
+      existingError.classList.remove("active")
+    }, 5000)
+  } else {
+    // Tạo thông báo lỗi mới nếu không có sẵn
+    const errorDiv = document.createElement("div")
+    errorDiv.className = "error-message active"
+    errorDiv.innerHTML = `
+      <i class="fas fa-exclamation-circle"></i>
+      <span>${message}</span>
+      <button class="close-message"><i class="fas fa-times"></i></button>
+    `
+
+    document.body.appendChild(errorDiv)
+
+    // Thiết lập nút đóng
+    const closeBtn = errorDiv.querySelector(".close-message")
+    closeBtn.addEventListener("click", () => {
+      errorDiv.classList.remove("active")
+      setTimeout(() => {
+        errorDiv.remove()
+      }, 300)
+    })
+
+    // Tự động ẩn sau 5 giây
+    setTimeout(() => {
+      errorDiv.classList.remove("active")
+      setTimeout(() => {
+        errorDiv.remove()
+      }, 300)
+    }, 5000)
+  }
+}
+
+// Hiển thị thông báo thành công
+function showSuccess(message) {
+  // Kiểm tra xem đã có thông báo thành công có sẵn chưa
+  const existingSuccess = document.getElementById("success-message")
+
+  if (existingSuccess) {
+    const successText = document.getElementById("success-text")
+    successText.textContent = message
+    existingSuccess.classList.add("active")
+
+    // Tự động ẩn sau 5 giây
+    setTimeout(() => {
+      existingSuccess.classList.remove("active")
+    }, 5000)
+  } else {
+    // Tạo thông báo thành công mới nếu không có sẵn
+    const successDiv = document.createElement("div")
+    successDiv.className = "success-message active"
+    successDiv.innerHTML = `
+      <i class="fas fa-check-circle"></i>
+      <span>${message}</span>
+      <button class="close-message"><i class="fas fa-times"></i></button>
+    `
+
+    document.body.appendChild(successDiv)
+
+    // Thiết lập nút đóng
+    const closeBtn = successDiv.querySelector(".close-message")
+    closeBtn.addEventListener("click", () => {
+      successDiv.classList.remove("active")
+      setTimeout(() => {
+        successDiv.remove()
+      }, 300)
+    })
+
+    // Tự động ẩn sau 5 giây
+    setTimeout(() => {
+      successDiv.classList.remove("active")
+      setTimeout(() => {
+        successDiv.remove()
+      }, 300)
+    }, 5000)
   }
 }
 
@@ -125,21 +619,13 @@ function setupTabs() {
 
   tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
-      // Remove active class from all tabs
       tabs.forEach((t) => t.classList.remove("active"))
-
-      // Add active class to clicked tab
       tab.classList.add("active")
-
-      // Hide all tab contents
       tabContents.forEach((content) => content.classList.remove("active"))
-
-      // Show the corresponding tab content
       const tabName = tab.dataset.tab
       const activeContent = document.getElementById(`${tabName}-content`)
       activeContent.classList.add("active")
 
-      // Load content based on the active tab
       switch (tabName) {
         case "trending":
           loadTrendingPosts()
@@ -164,16 +650,9 @@ function setupCategoryFilters() {
 
   categoryChips.forEach((chip) => {
     chip.addEventListener("click", () => {
-      // Remove active class from all chips
       categoryChips.forEach((c) => c.classList.remove("active"))
-
-      // Add active class to clicked chip
       chip.classList.add("active")
-
-      // Get the selected category
       const category = chip.dataset.category
-
-      // Reload trending posts with the selected category
       loadTrendingPosts(category)
     })
   })
@@ -194,10 +673,8 @@ function setupSearch() {
       const query = searchInput.value.trim()
 
       if (query.length > 2) {
-        // Perform search
         searchContent(query)
       } else if (query.length === 0) {
-        // If search is cleared, reload the current active tab
         const activeTab = document.querySelector(".explore-tab.active")
         if (activeTab) {
           const tabName = activeTab.dataset.tab
@@ -218,7 +695,7 @@ function setupSearch() {
           }
         }
       }
-    }, 500) // Debounce for 500ms
+    }, 500)
   })
 }
 
@@ -227,9 +704,9 @@ async function loadTrendingPosts(category = "all", silent = false) {
   try {
     const token = localStorage.getItem("auth_token")
     if (!token) {
-      console.warn("Không có auth_token, chuyển hướng về trang đăng nhập");
-      window.location.href = "/";
-      return;
+      console.warn("Không có auth_token, chuyển hướng về trang đăng nhập")
+      window.location.href = "/"
+      return
     }
     const trendingPostsContainer = document.getElementById("trending-posts")
 
@@ -262,7 +739,7 @@ async function loadTrendingPosts(category = "all", silent = false) {
     }
 
     const posts = await response.json()
-    console.log("Trending posts data:", posts) // Debug: Log posts data
+    console.log("Trending posts data:", posts)
 
     trendingPostsContainer.innerHTML = ""
 
@@ -276,15 +753,14 @@ async function loadTrendingPosts(category = "all", silent = false) {
     }
 
     posts.forEach((post, index) => {
-      console.log(`Processing post ${index + 1}:`, post) // Debug: Log each post
+      console.log(`Processing post ${index + 1}:`, post)
       const postElement = createPostElement(post)
       trendingPostsContainer.appendChild(postElement)
     })
-
-    setupPostInteractions()
   } catch (error) {
     console.error("Error loading trending posts:", error)
     if (!silent) {
+      const trendingPostsContainer = document.getElementById("trending-posts")
       trendingPostsContainer.innerHTML = `
                 <div class="error-message">
                     <p>Failed to load trending posts. Please try again later.</p>
@@ -299,14 +775,13 @@ async function loadLatestPosts(silent = false) {
   try {
     const token = localStorage.getItem("auth_token")
     if (!token) {
-      console.warn("No auth token, skipping loadLatestPosts");
-      return;
+      console.warn("No auth token, skipping loadLatestPosts")
+      return
     }
     const latestPostsContainer = document.getElementById("latest-posts")
 
     if (!latestPostsContainer) return
 
-    // Only show loading spinner if not a silent update
     if (!silent) {
       latestPostsContainer.innerHTML = `
           <div class="loading-spinner">
@@ -330,33 +805,25 @@ async function loadLatestPosts(silent = false) {
 
     const posts = await response.json()
 
-    // If this is a silent update, compare with existing posts
     if (silent) {
       const existingPostIds = Array.from(latestPostsContainer.querySelectorAll(".post")).map(
         (post) => post.dataset.postId,
       )
 
-      // Find new posts that aren't in the existing list
       const newPosts = posts.filter((post) => !existingPostIds.includes(post._id))
 
       if (newPosts.length > 0) {
-        // Show notification about new posts
         showNewContentNotification(newPosts.length, "latest posts")
 
-        // Prepend new posts at the top
         newPosts.forEach((post) => {
           const postElement = createPostElement(post)
           latestPostsContainer.insertBefore(postElement, latestPostsContainer.firstChild)
         })
-
-        // Setup interactions for new posts
-        setupPostInteractions()
       }
 
       return
     }
 
-    // For non-silent updates, clear the container and show all posts
     latestPostsContainer.innerHTML = ""
 
     if (posts.length === 0) {
@@ -368,18 +835,13 @@ async function loadLatestPosts(silent = false) {
       return
     }
 
-    // Render posts
     posts.forEach((post) => {
       const postElement = createPostElement(post)
       latestPostsContainer.appendChild(postElement)
     })
-
-    // Setup post interactions
-    setupPostInteractions()
   } catch (error) {
     console.error("Error loading latest posts:", error)
 
-    // Only show error if not a silent update
     if (!silent) {
       const latestPostsContainer = document.getElementById("latest-posts")
       if (latestPostsContainer) {
@@ -398,14 +860,13 @@ async function loadPopularPosts(silent = false) {
   try {
     const token = localStorage.getItem("auth_token")
     if (!token) {
-      console.warn("No auth token, skipping loadPopularPosts");
-      return;
+      console.warn("No auth token, skipping loadPopularPosts")
+      return
     }
     const popularPostsContainer = document.getElementById("popular-posts")
 
     if (!popularPostsContainer) return
 
-    // Only show loading spinner if not a silent update
     if (!silent) {
       popularPostsContainer.innerHTML = `
           <div class="loading-spinner">
@@ -429,33 +890,25 @@ async function loadPopularPosts(silent = false) {
 
     const posts = await response.json()
 
-    // If this is a silent update, compare with existing posts
     if (silent) {
       const existingPostIds = Array.from(popularPostsContainer.querySelectorAll(".post")).map(
         (post) => post.dataset.postId,
       )
 
-      // Find new posts that aren't in the existing list
       const newPosts = posts.filter((post) => !existingPostIds.includes(post._id))
 
       if (newPosts.length > 0) {
-        // Show notification about new posts
         showNewContentNotification(newPosts.length, "popular posts")
 
-        // Prepend new posts at the top
         newPosts.forEach((post) => {
           const postElement = createPostElement(post)
           popularPostsContainer.insertBefore(postElement, popularPostsContainer.firstChild)
         })
-
-        // Setup interactions for new posts
-        setupPostInteractions()
       }
 
       return
     }
 
-    // For non-silent updates, clear the container and show all posts
     popularPostsContainer.innerHTML = ""
 
     if (posts.length === 0) {
@@ -467,18 +920,13 @@ async function loadPopularPosts(silent = false) {
       return
     }
 
-    // Render posts
     posts.forEach((post) => {
       const postElement = createPostElement(post)
       popularPostsContainer.appendChild(postElement)
     })
-
-    // Setup post interactions
-    setupPostInteractions()
   } catch (error) {
     console.error("Error loading popular posts:", error)
 
-    // Only show error if not a silent update
     if (!silent) {
       const popularPostsContainer = document.getElementById("popular-posts")
       if (popularPostsContainer) {
@@ -521,21 +969,35 @@ async function loadSuggestedPeople(silent = false) {
       throw new Error("Failed to fetch suggested people");
     }
 
-    const users = await response.json();
+    let users = await response.json();
+
+    // Lấy thông tin người dùng hiện tại từ localStorage
+    const currentUser = JSON.parse(localStorage.getItem("current_user") || "{}");
+    const currentUserId = currentUser?._id;
+
+    // Lọc bỏ người dùng hiện tại khỏi danh sách
+    if (currentUserId) {
+      users = users.filter((user) => user._id !== currentUserId);
+    }
 
     if (silent) {
-      const existingUserIds = Array.from(suggestedPeopleContainer.querySelectorAll(".user-card")).map(
-        (user) => user.dataset.userId,
-      );
+      const existingUserIds = Array.from(
+        suggestedPeopleContainer.querySelectorAll(".user-card")
+      ).map((user) => user.dataset.userId);
 
-      const newUsers = users.filter((user) => !existingUserIds.includes(user._id));
+      const newUsers = users.filter(
+        (user) => !existingUserIds.includes(user._id)
+      );
 
       if (newUsers.length > 0) {
         showNewContentNotification(newUsers.length, "suggested people");
 
         newUsers.forEach((user) => {
-          const userCard = createUserCardElement(user); // Không truyền query
-          suggestedPeopleContainer.insertBefore(userCard, suggestedPeopleContainer.firstChild);
+          const userCard = createUserCardElement(user);
+          suggestedPeopleContainer.insertBefore(
+            userCard,
+            suggestedPeopleContainer.firstChild
+          );
         });
 
         setupFollowButtons();
@@ -556,7 +1018,7 @@ async function loadSuggestedPeople(silent = false) {
     }
 
     users.forEach((user) => {
-      const userCard = createUserCardElement(user); // Không truyền query
+      const userCard = createUserCardElement(user);
       suggestedPeopleContainer.appendChild(userCard);
     });
 
@@ -576,8 +1038,6 @@ async function loadSuggestedPeople(silent = false) {
     }
   }
 }
-
-// Search content
 // Search content
 async function searchContent(query, silent = false) {
   try {
@@ -588,7 +1048,7 @@ async function searchContent(query, silent = false) {
       return;
     }
 
-    query = query.replace(/^#/, "").toLowerCase().trim(); // Chuẩn hóa query
+    query = query.replace(/^#/, "").toLowerCase().trim();
 
     const activeTab = document.querySelector(".explore-tab.active");
     const tabName = activeTab ? activeTab.dataset.tab : "trending";
@@ -601,7 +1061,9 @@ async function searchContent(query, silent = false) {
       return;
     }
 
-    const contentContainer = document.getElementById(`${tabName}-posts`) || document.getElementById("suggested-people");
+    const contentContainer =
+      document.getElementById(`${tabName}-posts`) ||
+      document.getElementById("suggested-people");
 
     if (!contentContainer) {
       console.error(`Content container not found for tab: ${tabName}`);
@@ -622,14 +1084,17 @@ async function searchContent(query, silent = false) {
       `;
     }
 
-    let endpoint = tabName === "people" ? "/api/search/users" : "/api/search/posts";
+    let endpoint =
+      tabName === "people" ? "/api/search/users" : "/api/search/posts";
     endpoint += `?q=${encodeURIComponent(query)}`;
 
     if (tabName !== "people") {
       endpoint += `&sort=${tabName}`;
       const activeCategory = document.querySelector(".category-chip.active");
       if (activeCategory && activeCategory.dataset.category !== "all") {
-        endpoint += `&category=${encodeURIComponent(activeCategory.dataset.category.toLowerCase())}`;
+        endpoint += `&category=${encodeURIComponent(
+          activeCategory.dataset.category.toLowerCase()
+        )}`;
       }
     }
 
@@ -654,7 +1119,16 @@ async function searchContent(query, silent = false) {
     }
 
     const results = await response.json();
-    const resultsArray = tabName === "people" ? results.users : results.posts;
+    let resultsArray = tabName === "people" ? results.users : results.posts;
+
+    // Lấy thông tin người dùng hiện tại từ localStorage
+    const currentUser = JSON.parse(localStorage.getItem("current_user") || "{}");
+    const currentUserId = currentUser?._id;
+
+    // Lọc bỏ người dùng hiện tại khỏi danh sách nếu đang ở tab "people"
+    if (tabName === "people" && currentUserId) {
+      resultsArray = resultsArray.filter((user) => user._id !== currentUserId);
+    }
 
     contentContainer.innerHTML = "";
 
@@ -669,7 +1143,7 @@ async function searchContent(query, silent = false) {
 
     if (tabName === "people") {
       resultsArray.forEach((user) => {
-        const userCard = createUserCardElement(user, query); // Truyền query
+        const userCard = createUserCardElement(user, query);
         contentContainer.appendChild(userCard);
       });
       setupFollowButtons();
@@ -678,11 +1152,15 @@ async function searchContent(query, silent = false) {
         const postElement = createPostElement(post);
         contentContainer.appendChild(postElement);
       });
-      setupPostInteractions();
     }
   } catch (error) {
     console.error("Error searching content:", error);
-    const contentContainer = document.getElementById(`${document.querySelector(".explore-tab.active")?.dataset.tab || "trending"}-posts`) || document.getElementById("suggested-people");
+    const contentContainer =
+      document.getElementById(
+        `${
+          document.querySelector(".explore-tab.active")?.dataset.tab || "trending"
+        }-posts`
+      ) || document.getElementById("suggested-people");
     if (contentContainer && !silent) {
       contentContainer.innerHTML = `
         <div class="error-message">
@@ -692,14 +1170,13 @@ async function searchContent(query, silent = false) {
     }
   }
 }
-// Thêm hàm highlightQuery (nếu chưa có)
+
 function highlightQuery(text, query) {
-  if (!query) return text;
-  const regex = new RegExp(`(${query})`, 'gi');
-  return text.replace(regex, '<span class="highlight">$1</span>');
+  if (!query) return text
+  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})`, "gi")
+  return text.replace(regex, '<span class="highlight">$1</span>')
 }
 
-// Cập nhật createUserCardElement để nhận query
 function createUserCardElement(user, query = "") {
   const template = document.getElementById("user-card-template");
   const userCard = document.importNode(template.content, true).querySelector(".user-card");
@@ -707,17 +1184,28 @@ function createUserCardElement(user, query = "") {
   userCard.dataset.userId = user._id;
 
   const userAvatar = userCard.querySelector(".user-avatar img");
-  userAvatar.src = user.profile_picture || "/static/uploads/default-avatar-1.jpg";
+  userAvatar.src = user.avatar || "/static/uploads/default-avatar-1.jpg";
   userAvatar.alt = user.fullname || user.username;
 
   const userName = userCard.querySelector(".user-name");
-  userName.innerHTML = query ? highlightQuery(user.fullname || user.username, query) : (user.fullname || user.username);
+  userName.innerHTML = query ? highlightQuery(user.fullname || user.username, query) : user.fullname || user.username;
 
   const userUsername = userCard.querySelector(".user-username");
   userUsername.innerHTML = query ? highlightQuery(`@${user.username}`, query) : `@${user.username}`;
 
   const userBio = userCard.querySelector(".user-bio");
   userBio.textContent = user.bio || "No bio available";
+
+  // Hiển thị số bài viết và người theo dõi
+  const postsCount = userCard.querySelector(".posts-count");
+  if (postsCount) {
+    postsCount.textContent = user.posts_count !== undefined ? user.posts_count : 0;
+  }
+
+  const followersCount = userCard.querySelector(".followers-count");
+  if (followersCount) {
+    followersCount.textContent = user.followers_count !== undefined ? user.followers_count : 0;
+  }
 
   const followBtn = userCard.querySelector(".follow-btn");
   followBtn.dataset.userId = user._id;
@@ -733,30 +1221,23 @@ function createUserCardElement(user, query = "") {
 
   return userCard;
 }
-// Create user card element
-
-
-// Import functions from dashboard.js
-// These functions are already defined in dashboard.js, so we're just referencing them here
-// setupUserDropdown, setupThemeToggle, setupMessageClosing, setupFollowButtons, fetchCurrentUser, createPostElement, setupPostInteractions
-
 async function loadSuggestedUsers() {
   try {
-    const token = localStorage.getItem("auth_token");
+    const token = localStorage.getItem("auth_token")
     if (!token) {
-      console.warn("No auth token, skipping loadSuggestedUsers");
-      return;
+      console.warn("No auth token, skipping loadSuggestedUsers")
+      return
     }
-    const suggestedUsersContainer = document.getElementById("suggested-users");
+    const suggestedUsersContainer = document.getElementById("suggested-users")
 
-    if (!suggestedUsersContainer) return;
+    if (!suggestedUsersContainer) return
 
     suggestedUsersContainer.innerHTML = `
           <div class="loading-spinner">
             <i class="fas fa-spinner fa-spin"></i>
             <span>Loading suggested users...</span>
           </div>
-        `;
+        `
 
     const response = await fetch("/api/users/discover", {
       method: "GET",
@@ -764,86 +1245,80 @@ async function loadSuggestedUsers() {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-    });
+    })
 
     if (!response.ok) {
-      throw new Error("Failed to fetch suggested users");
+      throw new Error("Failed to fetch suggested users")
     }
 
-    const users = await response.json();
+    const users = await response.json()
 
-    suggestedUsersContainer.innerHTML = "";
+    suggestedUsersContainer.innerHTML = ""
 
     if (users.length === 0) {
       suggestedUsersContainer.innerHTML = `
             <div class="no-users">
               <p>No suggested users found.</p>
             </div>
-          `;
-      return;
+          `
+      return
     }
 
     users.forEach((user) => {
-      const userCard = createUserCardElement(user); // Không truyền query
-      suggestedUsersContainer.appendChild(userCard);
-    });
+      const userCard = createUserCardElement(user)
+      suggestedUsersContainer.appendChild(userCard)
+    })
 
-    setupFollowButtons();
+    setupFollowButtons()
   } catch (error) {
-    console.error("Error loading suggested users:", error);
-    const suggestedUsersContainer = document.getElementById("suggested-users");
+    console.error("Error loading suggested users:", error)
+    const suggestedUsersContainer = document.getElementById("suggested-users")
 
     if (suggestedUsersContainer) {
       suggestedUsersContainer.innerHTML = `
             <div class="error-message">
               <p>Failed to load suggested users. Please try again later.</p>
             </div>
-          `;
+          `
     }
   }
 }
 
 async function fetchCurrentUser() {
   try {
-    // Lấy token từ localStorage
-    const token = localStorage.getItem("auth_token");
+    const token = localStorage.getItem("auth_token")
 
-    // Kiểm tra xem token có tồn tại không
     if (!token) {
-      console.warn("Không tìm thấy auth_token, chuyển hướng về trang đăng nhập");
-      window.location.href = "/"; // Chuyển hướng về trang đăng nhập
-      return null;
+      console.warn("Không tìm thấy auth_token, chuyển hướng về trang đăng nhập")
+      window.location.href = "/"
+      return null
     }
 
-    // Gửi yêu cầu API để lấy thông tin người dùng
     const response = await fetch("/api/profile/me", {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
         "Content-Type": "application/json",
       },
-    });
+    })
 
-    // Xử lý lỗi 404
     if (response.status === 404) {
-      console.warn("Không tìm thấy người dùng (404), có thể token không hợp lệ");
-      localStorage.removeItem("auth_token"); // Xóa token
-      window.location.href = "/"; // Chuyển hướng về trang đăng nhập
-      return null;
+      console.warn("Không tìm thấy người dùng (404), có thể token không hợp lệ")
+      localStorage.removeItem("auth_token")
+      window.location.href = "/"
+      return null
     }
 
-    // Kiểm tra các lỗi khác
     if (!response.ok) {
-      throw new Error(`Lỗi khi lấy dữ liệu người dùng: ${response.status}`);
+      throw new Error(`Lỗi khi lấy dữ liệu người dùng: ${response.status}`)
     }
 
-    // Lấy dữ liệu người dùng
-    const user = await response.json();
-    console.log("Đã lấy thông tin người dùng:", user);
-    return user;
+    const user = await response.json()
+    console.log("Đã lấy thông tin người dùng:", user)
+    return user
   } catch (error) {
-    console.error("Lỗi trong fetchCurrentUser:", error);
-    return null;
+    console.error("Lỗi trong fetchCurrentUser:", error)
+    return null
   }
 }
 
@@ -902,7 +1377,6 @@ function setupThemeToggle() {
     localStorage.setItem("dark-mode", isDarkMode)
   })
 
-  // Load theme from local storage
   const storedTheme = localStorage.getItem("dark-mode")
   if (storedTheme === "true") {
     document.body.classList.add("dark-mode")
@@ -941,7 +1415,7 @@ function setupFollowButtons() {
       }
 
       try {
-        button.disabled = true // Vô hiệu hóa nút trong khi xử lý
+        button.disabled = true
         const url = isFollowing ? "/api/profile/unfollow" : "/api/profile/follow"
         const response = await fetch(url, {
           method: "POST",
@@ -949,7 +1423,7 @@ function setupFollowButtons() {
             Authorization: `Bearer ${token}`,
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ userId: userId }), // Gửi userId trong body
+          body: JSON.stringify({ userId: userId }),
         })
 
         const data = await response.json()
@@ -957,7 +1431,6 @@ function setupFollowButtons() {
           throw new Error(data.error || `Failed to ${isFollowing ? "unfollow" : "follow"} user`)
         }
 
-        // Cập nhật giao diện sau khi thành công
         if (isFollowing) {
           button.classList.remove("following")
           button.textContent = "Follow"
@@ -966,20 +1439,20 @@ function setupFollowButtons() {
           button.textContent = "Following"
         }
 
-        // Cập nhật số liệu followers ngay lập tức
         const followersCount = document.querySelector(`.user-card[data-user-id="${userId}"] .followers-count`)
         if (followersCount) {
-          followersCount.textContent = data.follower_count // Sử dụng giá trị từ API
+          followersCount.textContent = data.follower_count
         }
       } catch (error) {
         console.error("Error following/unfollowing user:", error)
         alert(`Failed to ${isFollowing ? "unfollow" : "follow"} user: ${error.message}`)
       } finally {
-        button.disabled = false // Kích hoạt lại nút
+        button.disabled = false
       }
     }
   })
 }
+
 function createPostElement(post) {
   if (!post || !post._id || !post.author || !post.author.username) {
     console.error("Invalid post data:", post)
@@ -1028,7 +1501,6 @@ function createPostElement(post) {
     postContent.textContent = post.content || ""
   }
 
-  // Enhanced image handling
   const postImage = postElement.querySelector(".post-image img")
   if (postImage) {
     console.log(`Processing post ${post._id} (content: "${post.content}")`, { image: post.image })
@@ -1036,9 +1508,11 @@ function createPostElement(post) {
       postImage.src = post.image
       postImage.alt = "Post Image"
       postImage.style.display = "block"
+      postElement.querySelector(".post-image").classList.add("active")
       console.log(`Set image src to ${post.image} for post ${post._id}`)
     } else {
       postImage.style.display = "none"
+      postElement.querySelector(".post-image").classList.remove("active")
       console.log(`No valid image for post ${post._id} (content: "${post.content}"), hiding image`)
     }
   } else {
@@ -1060,6 +1534,8 @@ function createPostElement(post) {
     likeBtn.dataset.postId = post._id
     if (post.isLiked) {
       likeBtn.classList.add("liked")
+      likeBtn.querySelector("i").classList.remove("far")
+      likeBtn.querySelector("i").classList.add("fas")
     }
   }
 
@@ -1073,95 +1549,50 @@ function createPostElement(post) {
     shareBtn.dataset.postId = post._id
   }
 
+  // Show/hide edit, delete, and report options
+  const currentUser = JSON.parse(localStorage.getItem("current_user") || "{}")
+  const editOption = postElement.querySelector(".edit-post-option")
+  const deleteOption = postElement.querySelector(".delete-post-option")
+  const reportOption = postElement.querySelector(".report-post-option")
+
+  if (currentUser && post.author._id === currentUser._id) {
+    console.log(`Post ${post._id}: Showing edit/delete, hiding report`)
+    editOption.style.display = "block"
+    deleteOption.style.display = "block"
+    reportOption.style.display = "none"
+  } else {
+    console.log(`Post ${post._id}: Hiding edit/delete, showing report`)
+    editOption.style.display = "none"
+    deleteOption.style.display = "none"
+    reportOption.style.display = "block"
+  }
+
   return postElement
 }
-function setupPostInteractions() {
-  document.addEventListener("click", async (event) => {
-    if (event.target.classList.contains("like-btn")) {
-      const button = event.target
-      const postId = button.dataset.postId
 
-      if (!postId) return
-
-      const isLiked = button.classList.contains("liked")
-
-      try {
-        const token = localStorage.getItem("auth_token")
-        const method = isLiked ? "DELETE" : "POST"
-        const url = isLiked ? `/api/posts/unlike/${postId}` : `/api/posts/like/${postId}`
-
-        const response = await fetch(url, {
-          method: method,
-          headers: {
-            Authorization: `Bearer ${token}`,
-            "Content-Type": "application/json",
-          },
-        })
-
-        if (!response.ok) {
-          throw new Error(`Failed to ${isLiked ? "unlike" : "like"} post`)
-        }
-
-        const postElement = button.closest(".post")
-        const likesCountElement = postElement.querySelector(".likes-count")
-        let likesCount = Number.parseInt(likesCountElement.textContent)
-
-        if (isLiked) {
-          button.classList.remove("liked")
-          likesCount--
-        } else {
-          button.classList.add("liked")
-          likesCount++
-        }
-
-        likesCountElement.textContent = likesCount
-      } catch (error) {
-        console.error("Error liking/unliking post:", error)
-        alert(`Failed to ${isLiked ? "unlike" : "like"} post. Please try again later.`)
-      }
-    }
-
-    if (event.target.classList.contains("comment-btn")) {
-      const button = event.target
-      const postId = button.dataset.postId
-
-      if (!postId) return
-
-      // Redirect to the post detail page
-      window.location.href = `/post/${postId}`
-    }
-  })
-}
 function setupRealTimeUpdates() {
-  // Set up polling interval for active tab
   let pollingInterval
-  const POLLING_INTERVAL = 30000 // 30 seconds
+  const POLLING_INTERVAL = 30000
 
   function startPolling() {
-    // Clear any existing interval
     if (pollingInterval) {
       clearInterval(pollingInterval)
     }
 
-    // Determine which tab is active
     const activeTab = document.querySelector(".explore-tab.active")
     if (!activeTab) return
 
     const tabName = activeTab.dataset.tab
 
-    // Set up polling based on active tab
     pollingInterval = setInterval(() => {
       console.log(`Polling for updates on ${tabName} tab`)
 
-      // Get the search query if any
       const searchInput = document.getElementById("explore-search-input")
       const query = searchInput ? searchInput.value.trim() : ""
 
       if (query.length > 2) {
-        // If there's a search query, refresh the search results
         searchContent(query, true)
       } else {
-        // Otherwise refresh the tab content
         switch (tabName) {
           case "trending":
             const activeCategory = document.querySelector(".category-chip.active")
@@ -1182,10 +1613,8 @@ function setupRealTimeUpdates() {
     }, POLLING_INTERVAL)
   }
 
-  // Start polling when the page loads
   startPolling()
 
-  // Restart polling when tab changes
   const tabs = document.querySelectorAll(".explore-tab")
   tabs.forEach((tab) => {
     tab.addEventListener("click", () => {
@@ -1193,11 +1622,9 @@ function setupRealTimeUpdates() {
     })
   })
 
-  // Restart polling when search input changes
   const searchInput = document.getElementById("explore-search-input")
   if (searchInput) {
     searchInput.addEventListener("input", () => {
-      // Reset the polling when search input changes
       if (pollingInterval) {
         clearInterval(pollingInterval)
       }
@@ -1207,7 +1634,6 @@ function setupRealTimeUpdates() {
 }
 
 function showNewContentNotification(count, type) {
-  // Create notification element if it doesn't exist
   let notification = document.getElementById("new-content-notification")
 
   if (!notification) {
@@ -1216,13 +1642,11 @@ function showNewContentNotification(count, type) {
     notification.className = "new-content-notification"
     document.body.appendChild(notification)
 
-    // Add click event to dismiss notification
     notification.addEventListener("click", () => {
       notification.classList.remove("active")
     })
   }
 
-  // Update notification content
   notification.innerHTML = `
       <div class="notification-content">
         <i class="fas fa-bell"></i>
@@ -1230,10 +1654,8 @@ function showNewContentNotification(count, type) {
       </div>
     `
 
-  // Show notification
   notification.classList.add("active")
 
-  // Auto-hide after 5 seconds
   setTimeout(() => {
     notification.classList.remove("active")
   }, 5000)
@@ -1261,10 +1683,10 @@ async function loadTrendingTopics() {
 
     const topics = await response.json()
     const trendingSection = document.getElementById("trending-topics")
-    trendingSection.innerHTML = "" // Xóa nội dung hiện tại
+    trendingSection.innerHTML = ""
 
     topics.forEach((topic) => {
-      const formattedCount = formatNumber(topic.post_count) // Định dạng số bài viết
+      const formattedCount = formatNumber(topic.post_count)
       const topicElement = document.createElement("div")
       topicElement.classList.add("trending-topic")
       topicElement.innerHTML = `
@@ -1281,13 +1703,13 @@ async function loadTrendingTopics() {
   }
 }
 
-// Hàm định dạng số (ví dụ: 5200 -> 5.2K)
 function formatNumber(num) {
   if (num >= 1000) {
     return (num / 1000).toFixed(1) + "K"
   }
   return num.toString()
 }
+
 function refreshTrendingPosts() {
   const activeCategory = document.querySelector(".category-chip.active")
   const category = activeCategory ? activeCategory.dataset.category : "all"
@@ -1297,6 +1719,7 @@ function refreshTrendingPosts() {
 document.addEventListener("postCreated", () => {
   refreshTrendingPosts()
 })
+
 function formatPostTime(timestamp) {
   try {
     const date = new Date(timestamp)
@@ -1317,6 +1740,7 @@ function formatPostTime(timestamp) {
     return ""
   }
 }
+
 function logTokenState() {
   const token = localStorage.getItem("auth_token")
   console.log(
@@ -1325,7 +1749,6 @@ function logTokenState() {
   )
 }
 
-// Call on page load
 document.addEventListener("DOMContentLoaded", () => {
   logTokenState()
   const token = localStorage.getItem("auth_token")
@@ -1333,10 +1756,8 @@ document.addEventListener("DOMContentLoaded", () => {
     window.location.href = "/"
     return
   }
-  // ... rest of the code
 })
 
-// Call before navigation
 document.querySelectorAll("a").forEach((link) => {
   link.addEventListener("click", (e) => {
     logTokenState()
@@ -1344,11 +1765,8 @@ document.querySelectorAll("a").forEach((link) => {
   })
 })
 
-// Fix for navigation issues
 function fixNavigation() {
-  // Remove the event listeners that were added at the bottom of the file
   document.querySelectorAll('a:not([href="/profile"]):not([href="profile"])').forEach((link) => {
-    // Clone and replace to remove existing event listeners
     if (!link.dataset.navigationFixed) {
       const newLink = link.cloneNode(true)
       newLink.dataset.navigationFixed = "true"
@@ -1359,20 +1777,86 @@ function fixNavigation() {
   console.log("[Navigation] Fixed navigation links")
 }
 
-// Call this function when the page loads
 document.addEventListener("DOMContentLoaded", fixNavigation)
-// Thêm hàm highlightQuery
-function highlightQuery(text, query) {
-  if (!query) return text;
-  const regex = new RegExp(`(${query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-  return text.replace(regex, '<span class="highlight">$1</span>');
-}
 
 function applyTheme() {
-  const isDarkMode = localStorage.getItem("dark_mode") === "true"
+  const isDarkMode = localStorage.getItem("dark-mode") === "true"
   if (isDarkMode) {
-      document.body.classList.add("dark-mode")
+    document.body.classList.add("dark-mode")
   } else {
-      document.body.classList.remove("dark-mode")
+    document.body.classList.remove("dark-mode")
+  }
+}
+
+async function loadFollowingList() {
+  try {
+    const token = localStorage.getItem("auth_token")
+    if (!token) {
+      console.warn("No auth token, skipping loadFollowingList")
+      return
+    }
+
+    const followingListContainer = document.querySelector(".following-list")
+    if (!followingListContainer) {
+      console.error("Following list container not found")
+      return
+    }
+
+    followingListContainer.innerHTML = `
+      <li class="loading-spinner small">
+        <i class="fas fa-spinner fa-spin"></i>
+      </li>
+    `
+
+    const response = await fetch("/api/profile/following", {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${token}`,
+        "Content-Type": "application/json",
+      },
+    })
+
+    if (!response.ok) {
+      throw new Error("Failed to fetch following list")
+    }
+
+    const users = await response.json()
+    followingListContainer.innerHTML = ""
+
+    if (users.length === 0) {
+      followingListContainer.innerHTML = `
+        <li class="no-users">
+          <p>You are not following anyone yet.</p>
+        </li>
+      `
+      return
+    }
+
+    users.forEach((user) => {
+      const listItem = document.createElement("li")
+      listItem.classList.add("following-user")
+      listItem.innerHTML = `
+        <a href="/profile/${user._id}" class="user-link">
+          <div class="user-avatar small">
+            <img src="${user.profile_picture || "/static/uploads/default-avatar-1.jpg"}" alt="${user.fullname || user.username}">
+          </div>
+          <div class="user-info">
+            <h4>${user.fullname || user.username}</h4>
+            <p>@${user.username}</p>
+          </div>
+        </a>
+      `
+      followingListContainer.appendChild(listItem)
+    })
+  } catch (error) {
+    console.error("Error loading following list:", error)
+    const followingListContainer = document.querySelector(".following-list")
+    if (followingListContainer) {
+      followingListContainer.innerHTML = `
+        <li class="error-message">
+          <p>Failed to load following list.</p>
+        </li>
+      `
+    }
   }
 }

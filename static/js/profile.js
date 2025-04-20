@@ -1061,9 +1061,9 @@ function deletePost(postId, postElement) {
 // Report post
 function reportPost(postId, postElement) {
   // Create modal
-  const modal = document.createElement("div")
-  modal.className = "modal report-modal"
-  modal.id = "report-post-modal"
+  const modal = document.createElement("div");
+  modal.className = "modal report-modal";
+  modal.id = "report-post-modal";
 
   modal.innerHTML = `
     <div class="modal-content">
@@ -1110,82 +1110,110 @@ function reportPost(postId, postElement) {
         <button class="submit-report-btn" disabled>Submit Report</button>
       </div>
     </div>
-  `
+  `;
 
   // Add modal to body
-  document.body.appendChild(modal)
+  document.body.appendChild(modal);
 
   // Show modal
   setTimeout(() => {
-    modal.classList.add("active")
-  }, 10)
+    modal.classList.add("active");
+  }, 10);
 
   // Setup close modal
-  const closeBtn = modal.querySelector(".close-modal")
-  closeBtn.addEventListener("click", closeModal)
+  const closeBtn = modal.querySelector(".close-modal");
+  closeBtn.addEventListener("click", closeModal);
 
   // Close modal when clicking outside
   modal.addEventListener("click", (e) => {
     if (e.target === modal) {
-      closeModal()
+      closeModal();
     }
-  })
+  });
 
   // Setup cancel button
-  const cancelBtn = modal.querySelector(".cancel-report-btn")
-  cancelBtn.addEventListener("click", closeModal)
+  const cancelBtn = modal.querySelector(".cancel-report-btn");
+  cancelBtn.addEventListener("click", closeModal);
 
   // Setup report options
-  const reportOptions = modal.querySelectorAll('input[name="report-reason"]')
-  const otherReasonContainer = modal.querySelector(".report-other-container")
-  const otherReasonTextarea = modal.querySelector("#report-other-reason")
-  const submitReportBtn = modal.querySelector(".submit-report-btn")
+  const reportOptions = modal.querySelectorAll('input[name="report-reason"]');
+  const otherReasonContainer = modal.querySelector(".report-other-container");
+  const otherReasonTextarea = modal.querySelector("#report-other-reason");
+  const submitReportBtn = modal.querySelector(".submit-report-btn");
 
   reportOptions.forEach((option) => {
     option.addEventListener("change", () => {
       if (option.value === "other") {
-        otherReasonContainer.style.display = "block"
-        submitReportBtn.disabled = otherReasonTextarea.value.trim() === ""
+        otherReasonContainer.style.display = "block";
+        submitReportBtn.disabled = otherReasonTextarea.value.trim() === "";
       } else {
-        otherReasonContainer.style.display = "none"
-        submitReportBtn.disabled = false
+        otherReasonContainer.style.display = "none";
+        submitReportBtn.disabled = false;
       }
-    })
-  })
+    });
+  });
 
   otherReasonTextarea.addEventListener("input", () => {
-    submitReportBtn.disabled = otherReasonTextarea.value.trim() === ""
-  })
+    submitReportBtn.disabled = otherReasonTextarea.value.trim() === "";
+  });
 
   // Setup submit button
-  submitReportBtn.addEventListener("click", () => {
-    const selectedOption = modal.querySelector('input[name="report-reason"]:checked')
+  submitReportBtn.addEventListener("click", async () => {
+    const selectedOption = modal.querySelector('input[name="report-reason"]:checked');
 
     if (!selectedOption) {
-      showError("Please select a reason for reporting.")
-      return
+      showError("Please select a reason for reporting.");
+      return;
     }
 
-    let reason = selectedOption.value
+    let reason = selectedOption.value;
+    let description = "";
     if (reason === "other") {
-      reason = otherReasonTextarea.value.trim()
-      if (reason === "") {
-        showError("Please specify the reason for reporting.")
-        return
+      description = otherReasonTextarea.value.trim();
+      if (description === "") {
+        showError("Please specify the reason for reporting.");
+        return;
       }
     }
 
-    // Here you would normally send the report to the server
-    // For now, we'll just show a success message
-    showSuccess("Thank you for your report. We'll review it shortly.")
-    closeModal()
-  })
+    try {
+      const token = localStorage.getItem("auth_token");
+      submitReportBtn.disabled = true;
+      submitReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+      const response = await fetch(`/api/posts/${postId}/report`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: reason,
+          description: description
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit report");
+      }
+
+      const result = await response.json();
+      showSuccess(result.message || "Thank you for your report. We'll review it shortly.");
+      closeModal();
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      showError(error.message || "Failed to submit report. Please try again.");
+      submitReportBtn.disabled = false;
+      submitReportBtn.innerHTML = "Submit Report";
+    }
+  });
 
   function closeModal() {
-    modal.classList.remove("active")
+    modal.classList.remove("active");
     setTimeout(() => {
-      modal.remove()
-    }, 300)
+      modal.remove();
+    }, 300);
   }
 }
 

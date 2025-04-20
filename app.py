@@ -26,6 +26,7 @@ CORS(app)
 
 # Configure JWT
 app.config['JWT_SECRET_KEY'] = Config.JWT_SECRET_KEY
+
 jwt = JWTManager(app)
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)

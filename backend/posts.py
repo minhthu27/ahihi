@@ -886,3 +886,63 @@ def add_reply(post_id, comment_id):
         return jsonify(reply), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+@posts_bp.route("/<post_id>/report", methods=["POST"])
+@jwt_required()
+def report_post(post_id):
+    current_user_id = get_jwt_identity()
+    
+    try:
+        # Validate ObjectId
+        if not ObjectId.is_valid(post_id):
+            return jsonify({"error": "Invalid post ID"}), 400
+            
+        # Get post
+        post = db.posts.find_one({"_id": ObjectId(post_id)})
+        
+        if not post:
+            return jsonify({"error": "Post not found"}), 404
+        
+        # Get report data
+        data = request.json
+        reason = data.get("reason", "").strip()
+        
+        if not reason:
+            return jsonify({"error": "Report reason is required"}), 400
+            
+        # Validate reason
+        valid_reasons = ["spam", "harmful", "misleading", "sensitive", "other"]
+        if reason not in valid_reasons and reason != "other":
+            return jsonify({"error": "Invalid report reason"}), 400
+            
+        # If reason is "other", ensure a description is provided
+        if reason == "other":
+            description = data.get("description", "").strip()
+            if not description:
+                return jsonify({"error": "Description is required for 'other' reason"}), 400
+            reason = description  # Use description as the reason for "other"
+        
+        # Check if user already reported this post
+        existing_report = db.reports.find_one({
+            "post_id": ObjectId(post_id),
+            "user_id": ObjectId(current_user_id)
+        })
+        
+        if existing_report:
+            return jsonify({"error": "You have already reported this post"}), 400
+        
+        # Create report
+        report = {
+            "post_id": ObjectId(post_id),
+            "user_id": ObjectId(current_user_id),
+            "reason": reason,
+            "created_at": datetime.datetime.utcnow()
+        }
+        
+        # Insert report
+        db.reports.insert_one(report)
+        
+        return jsonify({"message": "Post reported successfully. We'll review it shortly."}), 200
+    except Exception as e:
+        logger.error(f"Error reporting post: {str(e)}")
+        return jsonify({"error": str(e)}), 500

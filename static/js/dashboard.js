@@ -57,6 +57,11 @@ document.addEventListener("DOMContentLoaded", () => {
 // Initialize dashboard components
 function initializeDashboard() {
   // Fetch current user data
+  const template = document.getElementById("post-template");
+    if (!template) {
+        console.error("Post template not found in the DOM");
+        return;
+    }
   applyTheme()
   fetchCurrentUser()
 
@@ -335,64 +340,63 @@ function updateCurrentUserUI(userData) {
 // Load posts
 async function loadPosts() {
   try {
-    const token = localStorage.getItem("auth_token")
-    const feedContainer = document.getElementById("posts-feed")
+      const token = localStorage.getItem("auth_token");
+      const feedContainer = document.getElementById("posts-feed");
 
-    if (!feedContainer) return
+      if (!feedContainer) return;
 
-    // Show loading spinner
-    feedContainer.innerHTML = `
-      <div class="loading-spinner">
-        <i class="fas fa-spinner fa-spin"></i>
-        <span>Loading posts...</span>
-      </div>
-    `
-
-    const response = await fetch("/api/posts/feed", {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-    })
-
-    if (!response.ok) {
-      throw new Error("Failed to fetch posts")
-    }
-
-    const posts = await response.json()
-
-    // Clear loading spinner
-    feedContainer.innerHTML = ""
-
-    if (posts.length === 0) {
+      // Show loading spinner
       feedContainer.innerHTML = `
-        <div class="no-posts">
-          <p>No posts to show. Follow some users or create your first post!</p>
-        </div>
-      `
-      return
-    }
+          <div class="loading-spinner">
+              <i class="fas fa-spinner fa-spin"></i>
+              <span>Loading posts...</span>
+          </div>
+      `;
 
-    // Render posts
-    posts.forEach((post) => {
-      const postElement = createPostElement(post)
-      feedContainer.appendChild(postElement)
-    })
+      const response = await fetch("/api/posts/feed", {
+          method: "GET",
+          headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+          },
+      });
 
-    // Setup post interactions
-    setupPostInteractions()
+      if (!response.ok) {
+          throw new Error("Failed to fetch posts");
+      }
+
+      const posts = await response.json();
+
+      // Clear loading spinner
+      feedContainer.innerHTML = "";
+
+      if (posts.length === 0) {
+          feedContainer.innerHTML = `
+              <div class="no-posts">
+                  <p>No posts to show. Follow some users or create your first post!</p>
+              </div>
+          `;
+          return;
+      }
+
+      // Render posts
+      posts.forEach((post) => {
+          const postElement = createPostElement(post);
+          feedContainer.appendChild(postElement);
+      });
+
+      // Setup post interactions
+      setupPostInteractions();
   } catch (error) {
-    console.error("Error loading posts:", error)
-    const feedContainer = document.getElementById("posts-feed")
+      console.error("Error loading posts:", error);
+      const feedContainer = document.getElementById("posts-feed");
 
-    if (feedContainer) {
-      feedContainer.innerHTML = `
-        <div class="error-message">
-          <p>Failed to load posts. Please try again later.</p>
-        </div>
-      `
-    }
+      if (feedContainer) {
+          feedContainer.innerHTML = ""; // Xóa spinner hoặc nội dung cũ
+      }
+
+      // Sử dụng showError để hiển thị thông báo
+      showError("Failed to load posts. Please try again later.");
   }
 }
 
@@ -607,100 +611,94 @@ function createSuggestedUserElement(user) {
 
 // Create post element - Updated to use user ID and correctly count comments
 function createPostElement(post) {
-  // Clone the post template
-  const template = document.getElementById("post-template")
-  const postElement = document.importNode(template.content, true).querySelector(".post")
+  // Clone template
+  const template = document.getElementById("post-template");
+  const postElement = document.importNode(template.content, true).querySelector(".post");
 
   // Set post ID
-  postElement.dataset.postId = post._id
+  postElement.dataset.postId = post._id;
 
   // Set author info
-  const authorLinks = postElement.querySelectorAll(".user-link")
+  const authorLinks = postElement.querySelectorAll(".user-link");
   authorLinks.forEach((link) => {
-    link.href = `/profile/${post.author._id}`
-  })
+      link.href = `/profile/${post.author._id}`;
+  });
 
-  const authorAvatar = postElement.querySelector(".post-header .user-avatar img")
-  authorAvatar.src = post.author.avatar || "/static/uploads/default-avatar-1.jpg"
-  authorAvatar.alt = post.author.fullname || post.author.username
+  const authorAvatar = postElement.querySelector(".user-avatar img");
+  authorAvatar.src = post.author.avatar || "/static/uploads/default-avatar.png";
+  authorAvatar.alt = post.author.fullname || post.author.username;
 
-  const authorName = postElement.querySelector(".post-author")
-  authorName.textContent = post.author.fullname || post.author.username
+  const authorName = postElement.querySelector(".post-author");
+  authorName.textContent = post.author.fullname || post.author.username;
 
-  const authorUsername = postElement.querySelector(".post-username")
-  authorUsername.textContent = `@${post.author.username}`
+  const authorUsername = postElement.querySelector(".post-username");
+  authorUsername.textContent = `@${post.author.username}`;
 
   // Set post time
-  const postTime = postElement.querySelector(".post-time")
-  postTime.textContent = formatTimeAgo(new Date(post.created_at))
+  const postTime = postElement.querySelector(".post-time");
+  postTime.textContent = formatTimeAgo(new Date(post.created_at));
 
   // Set post content
-  const postText = postElement.querySelector(".post-text")
-  postText.textContent = post.content
+  const postText = postElement.querySelector(".post-text");
+  postText.textContent = post.content;
 
   // Set post image if exists
-  const postImage = postElement.querySelector(".post-image")
-  const postImageElement = postElement.querySelector(".post-image img")
+  const postImage = postElement.querySelector(".post-image");
+  const postImageElement = postElement.querySelector(".post-image img");
   if (post.image) {
-    postImage.classList.add("active")
-    postImageElement.src = post.image
-    postImageElement.alt = "Post image"
+      postImage.style.display = "block";
+      postImageElement.src = post.image;
+      postImageElement.alt = "Post image";
   } else {
-    postImage.style.display = "none"
+      postImage.style.display = "none";
   }
 
   // Set like count
-  const likeCount = postElement.querySelector(".like-count")
-  likeCount.textContent = post.likes ? post.likes.length : 0
+  const likeCount = postElement.querySelector(".like-count");
+  likeCount.textContent = post.likes ? post.likes.length : 0;
 
   // Check if current user liked the post
-  const currentUser = JSON.parse(localStorage.getItem("current_user"))
-  const likeBtn = postElement.querySelector(".like-btn")
+  const currentUser = JSON.parse(localStorage.getItem("current_user"));
+  const likeBtn = postElement.querySelector(".like-btn");
   if (currentUser && post.likes && post.likes.includes(currentUser._id)) {
-    likeBtn.classList.add("active")
-    likeBtn.querySelector("i").classList.remove("far")
-    likeBtn.querySelector("i").classList.add("fas")
-  }
-
-  // Calculate total comment count including replies
-  let totalCommentCount = post.comments ? post.comments.length : 0
-
-  // Add reply counts if available
-  if (post.comments) {
-    post.comments.forEach((comment) => {
-      if (comment.replies) {
-        totalCommentCount += comment.replies.length
-      }
-    })
-  }
-
-  // Use comment_count from server if available (this is the most accurate)
-  if (post.comment_count !== undefined) {
-    totalCommentCount = post.comment_count
+      likeBtn.classList.add("active");
+      likeBtn.querySelector("i").classList.remove("far");
+      likeBtn.querySelector("i").classList.add("fas");
   }
 
   // Set comment count
-  const commentCount = postElement.querySelector(".comment-count")
-  commentCount.textContent = totalCommentCount
+  let totalCommentCount = post.comments ? post.comments.length : 0;
+  if (post.comments) {
+      post.comments.forEach((comment) => {
+          if (comment.replies) {
+              totalCommentCount += comment.replies.length;
+          }
+      });
+  }
+  const commentCount = postElement.querySelector(".comment-count");
+  commentCount.textContent = totalCommentCount;
 
   // Set share count
-  const shareCount = postElement.querySelector(".share-count")
-  shareCount.textContent = post.shares || 0
+  const shareCount = postElement.querySelector(".share-count");
+  shareCount.textContent = post.shares || 0;
 
-  // Show/hide edit and delete options
-  const editOption = postElement.querySelector(".edit-post-option")
-  const deleteOption = postElement.querySelector(".delete-post-option")
+  // Show/hide edit, delete, and report options
+  const editOption = postElement.querySelector(".edit-post-option");
+  const deleteOption = postElement.querySelector(".delete-post-option");
+  const reportOption = postElement.querySelector(".report-post-option");
+
   if (currentUser && post.author._id === currentUser._id) {
-    editOption.style.display = "block"
-    deleteOption.style.display = "block"
+      editOption.style.display = "block";
+      deleteOption.style.display = "block";
+      reportOption.style.display = "none"; // Ẩn "Report" nếu người dùng là tác giả
   } else {
-    editOption.style.display = "none"
-    deleteOption.style.display = "none"
+      editOption.style.display = "none";
+      deleteOption.style.display = "none";
+      reportOption.style.display = "block"; // Hiển thị "Report" nếu người dùng không phải tác giả
   }
 
-  return postElement
+  return postElement;
 }
-
 // Setup post creation
 function setupPostCreation() {
   const postContent = document.getElementById("post-content");
@@ -988,82 +986,99 @@ async function toggleFollow(userId, button) {
 
 // Setup post interactions
 function setupPostInteractions() {
-  const posts = document.querySelectorAll(".post")
+  const posts = document.querySelectorAll(".post");
 
   posts.forEach((post) => {
     // Post menu toggle
-    const menuToggle = post.querySelector(".post-menu-toggle")
-    const dropdown = post.querySelector(".post-dropdown")
+    const menuToggle = post.querySelector(".post-menu-toggle");
+    const dropdown = post.querySelector(".post-dropdown");
 
     if (menuToggle && dropdown) {
       menuToggle.addEventListener("click", (e) => {
-        e.stopPropagation()
-        dropdown.classList.toggle("active")
-
-        // Close other dropdowns
+        e.stopPropagation();
+        dropdown.classList.toggle("active");
         document.querySelectorAll(".post-dropdown.active").forEach((dd) => {
           if (dd !== dropdown) {
-            dd.classList.remove("active")
+            dd.classList.remove("active");
           }
-        })
-      })
+        });
+      });
     }
 
     // Like button
-    const likeBtn = post.querySelector(".like-btn")
+    const likeBtn = post.querySelector(".like-btn");
     if (likeBtn) {
       likeBtn.addEventListener("click", function () {
-        const postId = post.dataset.postId
-        toggleLikePost(postId, this)
-      })
+        const postId = post.dataset.postId;
+        toggleLikePost(postId, this);
+      });
     }
 
     // Comment button
-    const commentBtn = post.querySelector(".comment-btn")
+    const commentBtn = post.querySelector(".comment-btn");
     if (commentBtn) {
       commentBtn.addEventListener("click", () => {
-        const postId = post.dataset.postId
-        openCommentModal(postId, post)
-      })
+        const postId = post.dataset.postId;
+        openCommentModal(postId, post);
+      });
     }
 
     // Share button
-    const shareBtn = post.querySelector(".share-btn")
+    const shareBtn = post.querySelector(".share-btn");
     if (shareBtn) {
       shareBtn.addEventListener("click", () => {
-        const postId = post.dataset.postId
-        sharePost(postId, post)
-      })
+        const postId = post.dataset.postId;
+        sharePost(postId, post);
+      });
     }
 
     // Edit post
-    const editPostOption = post.querySelector(".edit-post-option a")
+    const editPostOption = post.querySelector(".edit-post-option a");
     if (editPostOption) {
       editPostOption.addEventListener("click", (e) => {
-        e.preventDefault()
-        const postId = post.dataset.postId
-        const postText = post.querySelector(".post-text").textContent
-        editPost(postId, postText, post)
-      })
+        e.preventDefault();
+        console.log("Edit post clicked for post ID:", post.dataset.postId);
+        const postId = post.dataset.postId;
+        const postText = post.querySelector(".post-text").textContent;
+        editPost(postId, postText, post);
+      });
+    } else {
+      console.log("Edit post option not found for post ID:", post.dataset.postId);
     }
 
     // Delete post
-    const deletePostOption = post.querySelector(".delete-post-option a")
+    const deletePostOption = post.querySelector(".delete-post-option a");
     if (deletePostOption) {
       deletePostOption.addEventListener("click", (e) => {
-        e.preventDefault()
-        const postId = post.dataset.postId
-        deletePost(postId, post)
-      })
+        e.preventDefault();
+        console.log("Delete post clicked for post ID:", post.dataset.postId);
+        const postId = post.dataset.postId;
+        deletePost(postId, post);
+      });
+    } else {
+      console.log("Delete post option not found for post ID:", post.dataset.postId);
     }
-  })
+
+    // Report post
+    const reportPostOption = post.querySelector(".report-post-option a");
+    if (reportPostOption) {
+      reportPostOption.addEventListener("click", (e) => {
+        e.preventDefault();
+        console.log("Report post clicked for post ID:", post.dataset.postId);
+        const postId = post.dataset.postId;
+        openReportModal(postId);
+      });
+    } else {
+      console.log("Report post option not found for post ID:", post.dataset.postId);
+    }
+  });
 
   // Close dropdowns when clicking outside
-  document.addEventListener("click", () =>
+  document.addEventListener("click", () => {
     document.querySelectorAll(".post-dropdown.active").forEach((dropdown) => {
-      dropdown.classList.remove("active")
-    }),
-  )
+      dropdown.classList.remove("active");
+    });
+  });
 }
 
 // Toggle like on a post
@@ -1500,9 +1515,9 @@ function sharePost(postId, postElement) {
 // Edit post
 function editPost(postId, postText, postElement) {
   // Create modal
-  const modal = document.createElement("div")
-  modal.className = "modal edit-post-modal"
-  modal.id = "edit-post-modal"
+  const modal = document.createElement("div");
+  modal.className = "modal edit-post-modal";
+  modal.id = "edit-post-modal";
 
   modal.innerHTML = `
     <div class="modal-content">
@@ -1518,45 +1533,45 @@ function editPost(postId, postText, postElement) {
         <button class="save-edit-btn">Save</button>
       </div>
     </div>
-  `
+  `;
 
   // Add modal to body
-  document.body.appendChild(modal)
+  document.body.appendChild(modal);
 
   // Show modal
   setTimeout(() => {
-    modal.classList.add("active")
-  }, 10)
+    modal.classList.add("active");
+  }, 10);
 
   // Setup close modal
-  const closeBtn = modal.querySelector(".close-modal")
-  closeBtn.addEventListener("click", closeModal)
+  const closeBtn = modal.querySelector(".close-modal");
+  closeBtn.addEventListener("click", closeModal);
 
   // Close modal when clicking outside
   modal.addEventListener("click", (e) => {
     if (e.target === modal) {
-      closeModal()
+      closeModal();
     }
-  })
+  });
 
   // Setup cancel button
-  const cancelBtn = modal.querySelector(".cancel-edit-btn")
-  cancelBtn.addEventListener("click", closeModal)
+  const cancelBtn = modal.querySelector(".cancel-edit-btn");
+  cancelBtn.addEventListener("click", closeModal);
 
   // Setup save button
-  const saveBtn = modal.querySelector(".save-edit-btn")
-  const editTextarea = modal.querySelector("#edit-post-content")
+  const saveBtn = modal.querySelector(".save-edit-btn");
+  const editTextarea = modal.querySelector("#edit-post-content");
 
   saveBtn.addEventListener("click", async () => {
-    const newText = editTextarea.value.trim()
+    const newText = editTextarea.value.trim();
 
     if (newText === "") {
-      showError("Post content cannot be empty.")
-      return
+      showError("Post content cannot be empty.");
+      return;
     }
 
     try {
-      const token = localStorage.getItem("auth_token")
+      const token = localStorage.getItem("auth_token");
 
       const response = await fetch(`/api/posts/${postId}/update`, {
         method: "PUT",
@@ -1567,31 +1582,31 @@ function editPost(postId, postText, postElement) {
         body: JSON.stringify({
           content: newText,
         }),
-      })
+      });
 
       if (!response.ok) {
-        throw new Error("Failed to update post")
+        throw new Error("Failed to update post");
       }
 
       // Update post text
-      postElement.querySelector(".post-text").textContent = newText
+      postElement.querySelector(".post-text").textContent = newText;
 
       // Close modal
-      closeModal()
+      closeModal();
 
       // Show success message
-      showSuccess("Post updated successfully!")
+      showSuccess("Post updated successfully!");
     } catch (error) {
-      console.error("Error updating post:", error)
-      showError("Failed to update post. Please try again.")
+      console.error("Error updating post:", error);
+      showError("Failed to update post. Please try again.");
     }
-  })
+  });
 
   function closeModal() {
-    modal.classList.remove("active")
+    modal.classList.remove("active");
     setTimeout(() => {
-      modal.remove()
-    }, 300)
+      modal.remove();
+    }, 300);
   }
 }
 
@@ -2823,5 +2838,208 @@ function applyTheme() {
       document.body.classList.add("dark-mode")
   } else {
       document.body.classList.remove("dark-mode")
+  }
+}
+function openReportModal(postId) {
+  // Create modal
+  const modal = document.createElement("div");
+  modal.className = "modal report-modal";
+  modal.id = "report-post-modal";
+
+  modal.innerHTML = `
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2>Report Post</h2>
+        <button class="close-modal"><i class="fas fa-times"></i></button>
+      </div>
+      <div class="modal-body">
+        <p>Why are you reporting this post?</p>
+        <div class="report-options">
+          <div class="report-option">
+            <input type="radio" name="report-reason" id="report-spam" value="spam">
+            <label for="report-spam">It's spam</label>
+          </div>
+          <div class="report-option">
+            <input type="radio" name="report-reason" id="report-harmful" value="harmful">
+            <label for="report-harmful">It's harmful or abusive</label>
+          </div>
+          <div class="report-option">
+            <input type="radio" name="report-reason" id="report-misleading" value="misleading">
+            <label for="report-misleading">It contains misleading information</label>
+          </div>
+          <div class="report-option">
+            <input type="radio" name="report-reason" id="report-sensitive" value="sensitive">
+            <label for="report-sensitive">It contains sensitive content</label>
+          </div>
+          <div class="report-option">
+            <input type="radio" name="report-reason" id="report-other" value="other">
+            <label for="report-other">Other</label>
+          </div>
+          <div class="report-other-container" style="display: none;">
+            <textarea id="report-other-reason" placeholder="Please specify the reason"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="cancel-report-btn">Cancel</button>
+        <button class="submit-report-btn" disabled>Submit Report</button>
+      </div>
+    </div>
+  `;
+
+  // Add modal to body
+  document.body.appendChild(modal);
+
+  // Show modal
+  setTimeout(() => {
+    modal.classList.add("active");
+  }, 10);
+
+  // Setup close modal
+  const closeBtn = modal.querySelector(".close-modal");
+  closeBtn.addEventListener("click", closeModal);
+
+  // Close modal when clicking outside
+  modal.addEventListener("click", (e) => {
+    if (e.target === modal) {
+      closeModal();
+    }
+  });
+
+  // Setup cancel button
+  const cancelBtn = modal.querySelector(".cancel-report-btn");
+  cancelBtn.addEventListener("click", closeModal);
+
+  // Setup report options
+  const reportOptions = modal.querySelectorAll('input[name="report-reason"]');
+  const otherReasonContainer = modal.querySelector(".report-other-container");
+  const otherReasonTextarea = modal.querySelector("#report-other-reason");
+  const submitReportBtn = modal.querySelector(".submit-report-btn");
+
+  reportOptions.forEach((option) => {
+    option.addEventListener("change", () => {
+      if (option.value === "other") {
+        otherReasonContainer.style.display = "block";
+        submitReportBtn.disabled = otherReasonTextarea.value.trim() === "";
+      } else {
+        otherReasonContainer.style.display = "none";
+        submitReportBtn.disabled = false;
+      }
+    });
+  });
+
+  otherReasonTextarea.addEventListener("input", () => {
+    submitReportBtn.disabled = otherReasonTextarea.value.trim() === "";
+  });
+
+  // Setup submit button
+  submitReportBtn.addEventListener("click", async () => {
+    const selectedOption = modal.querySelector('input[name="report-reason"]:checked');
+
+    if (!selectedOption) {
+      showError("Please select a reason for reporting.");
+      return;
+    }
+
+    let reason = selectedOption.value;
+    let description = "";
+    if (reason === "other") {
+      description = otherReasonTextarea.value.trim();
+      if (description === "") {
+        showError("Please specify the reason for reporting.");
+        return;
+      }
+    }
+
+    try {
+      const token = localStorage.getItem("auth_token");
+      submitReportBtn.disabled = true;
+      submitReportBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+      const response = await fetch(`/api/posts/${postId}/report`, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          reason: reason,
+          description: description,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || "Failed to submit report");
+      }
+
+      const result = await response.json();
+      showSuccess(result.message || "Thank you for your report. We'll review it shortly.");
+      closeModal();
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      showError(error.message || "Failed to submit report. Please try again.");
+      submitReportBtn.disabled = false;
+      submitReportBtn.innerHTML = "Submit Report";
+    }
+  });
+
+  function closeModal() {
+    modal.classList.remove("active");
+    setTimeout(() => {
+      modal.remove();
+    }, 300);
+  }
+}
+async function submitReport(postId, reason, description, modal) {
+  try {
+      const token = localStorage.getItem("auth_token");
+      const submitBtn = modal.querySelector(".submit-report-btn");
+
+      // Xác thực mô tả nếu lý do là "other"
+      if (reason === "other" && !description.trim()) {
+          showError("Description is required when selecting 'Other' as the reason.");
+          return;
+      }
+
+      // Vô hiệu hóa nút gửi
+      submitBtn.disabled = true;
+      submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Submitting...';
+
+      const response = await fetch(`/api/posts/${postId}/report`, {
+          method: "POST",
+          headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+              reason,
+              description: reason === "other" ? description : undefined,
+          }),
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+          throw new Error(result.error || "Failed to submit report");
+      }
+
+      // Đóng modal
+      modal.classList.remove("active");
+      setTimeout(() => {
+          modal.remove();
+      }, 300);
+
+      // Hiển thị thông báo thành công
+      showSuccess(result.message || "Post reported successfully. We'll review it shortly.");
+
+  } catch (error) {
+      console.error("Error submitting report:", error);
+      showError(error.message || "Failed to submit report. Please try again.");
+
+      // Kích hoạt lại nút gửi
+      const submitBtn = modal.querySelector(".submit-report-btn");
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = "Submit Report";
   }
 }
