@@ -1,0 +1,64 @@
+/* static/css/posts.css */
+
+.post-image {
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .table th, .table td {
+    padding: 12px;
+    border: 1px solid #e1e4e8;
+  }
+  
+  .report-content {
+    font-size: 0.95em;
+    color: #555;
+  }
+  
+  .actions form {
+    display: inline-block;
+    margin-right: 5px;
+  }
+  
+  .btn {
+    padding: 6px 12px;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+  
+  .btn-outline {
+    background-color: #fff;
+    border: 1px solid #ccc;
+    color: #333;
+  }
+  
+  .btn-outline:hover {
+    background-color: #f2f2f2;
+  }
+  
+  .btn-danger {
+    background-color: #dc3545;
+    color: #fff;
+  }
+  
+  .btn-danger:hover {
+    background-color: #c82333;
+  }
+  
+  /* Search bar style */
+  .search-bar {
+    width: 300px;
+    padding: 8px 12px;
+    border: 1px solid #ccc;
+    border-radius: 20px;
+    margin-left: auto;
+    display: inline-block;
+    margin-bottom: 10px;
+  }
+  

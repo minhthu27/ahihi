@@ -27,7 +27,8 @@ def register():
             "fullname": data["fullname"],
             "username": data["username"],
             "email": data["email"],
-            "password": generate_password_hash(data["password"])
+            "password": generate_password_hash(data["password"]),
+            "role": "user"
         }
         
         result = db.users.insert_one(user_data)

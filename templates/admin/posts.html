@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Post Management</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css">
+    <style>
+        .modal-body pre { white-space: pre-wrap; }
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        .error-message {
+            display: none;
+            color: red;
+            text-align: center;
+            padding: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container mt-4">
+        <h2>Post Management</h2>
+        
+        <div id="loading" class="loading">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p>Loading data...</p>
+        </div>
+        
+        <div id="errorMessage" class="error-message">
+            An error occurred while loading data. Please try again later.
+        </div>
+        
+        <div class="mb-3">
+            <input type="text" id="searchInput" class="form-control" placeholder="Tìm kiếm theo nội dung hoặc người đăng...">
+            <select id="sortSelect" class="form-select mt-2">
+                <option value="created_at|desc">Date (Newest First)</option>
+                <option value="created_at|asc">Date (Oldest First)</option>
+                <option value="report_count|desc">Report Count (High to Low)</option>
+                <option value="report_count|asc">Report Count (Low to High)</option>
+            </select>
+        </div>
+        <table class="table table-striped" id="postTable">
+            <thead>
+                <tr>
+                    <th>Content</th>
+                    <th>Author</th>
+                    <th>Created At</th>
+                    <th>Status</th>
+                    <th>Report Count</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="postTableBody">
+                <tr>
+                    <td colspan="6" class="text-center">Loading data...</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Modal để xem nội dung -->
+    <!-- Modal để xem nội dung -->
+<div class="modal fade" id="contentModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Post Content</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="postImage" style="margin-bottom: 15px;"></div>
+                <pre id="postContent"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Đóng</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- Modal để xem báo cáo -->
+    <div class="modal fade" id="reportsModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Violation Reports</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body" id="reportsContent"></div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/static/js/admin/posts.js"></script>
+</body>
+</html>
